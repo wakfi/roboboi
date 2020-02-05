@@ -4,14 +4,14 @@ const emojiUnicode = require('emoji-unicode');
 var svgToPng = require('svg-to-png');
 var path = require('path');
 var fs = require('fs-extra');
-const RoleCall = require('components/RoleCall.js');
+const RoleCall = require('./components/RoleCall.js');
 const emojiMap = require('./components/emojilib.json');
-const clientOps = require('components/clientOps.json');
+const clientOps = require('./components/clientOps.json');
 const client = new Discord.Client(clientOps);
 
 
 //--------------------------------------------------------------//
-//		  GU CPSC Bot v0.1.0  ~~ by ~~  wakfi#6999  u/wakfi		//
+//		  GU CPSC Bot v0.2.0  ~~ by ~~  wakfi#6999  u/wakfi		//
 //			source code at https://github.com/wakfi/			//
 //				Open Source Under MIT License (2019)			//
 //--------------------------------------------------------------//
@@ -48,9 +48,9 @@ function addTimestampLogs()
 	}
 }
 
-const config = require('components/config.json');
-const roleCallConfig = require('components/roleCallConfig.json');
-const roleCall = new RoleCall(client,roleCallConfig);
+const config = require('./components/config.json');
+const roleCallConfig = require('./components/roleCallConfig.json');
+var roleCall;
 
 var myGuilds = [];
 var myChannels = [];
@@ -59,11 +59,26 @@ client.on("ready", async () => {
 	//fetch guilds and channels
 	 myGuilds.push(await fetchGuild('673769572804853791'));
 		 myChannels[0].push(await fetchChannel(client.guilds.array()[myGuilds[0]], '674352244136869891'));
-		 myChannels[0].push(await fetchChannel(client.guilds.array()[myGuilds[0]], 'someOtherId'));
 	
-	fixLogs(); 
+	addTimestampLogs();
+	roleCall = new RoleCall(client,roleCallConfig);
 	console.log(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} guilds.`);
-	client.user.setActivity(`Type ${config.prefix}help for help`);
+	//client.user.setActivity(`Type ${config.prefix}help for help`);
+	client.user.setActivity(`Beep Boop`);
+	
+	/* let year = await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].fetchMessage(`674525537376403457`);
+	let major = await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].fetchMessage(`674526440934604813`);
+	let classes = await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].fetchMessage(`674527325408198656`);
+	let msgString = ``;
+	year.content.split('\n').map(emoji => msgString+= `${emoji} = placeholder text because i'm generating this via bot\n`);
+	await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].send(msgString);
+	msgString = ``;
+	major.content.split('\n').map(emoji => msgString+= `${emoji} = placeholder text because i'm generating this via bot\n`);
+	await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].send(msgString);
+	msgString = ``;
+	classes.content.split('\n').map(emoji => msgString+= `${emoji} = placeholder text because i'm generating this via bot\n`);
+	await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].send(msgString);
+	await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].send(`React below for roles`); */
 });
 
 //[helper function] returns the index of a guild (passed by name) in the client.guilds.array()
@@ -78,7 +93,7 @@ function fetchGuild(id)
 				resolve(i);
 			}
 		}
-		throw `Error: Not a member of guild ${name}`;
+		throw `Error: Not a member of guild ${id}`;
 	});
 }
 
@@ -93,7 +108,7 @@ function fetchChannel(guild,id)
 				resolve(i);
 			}
 		}
-		throw `Error: Channel ${name} not found in ${guild}`;
+		throw `Error: Channel ${id} not found in ${guild}`;
 	});
 }
 
@@ -112,10 +127,6 @@ client.on("guildMemberAdd", member => {}); //nothing
 
 //runs when a user leaves the server
 client.on("guildMemberRemove", member => {}); //nothing
-
-roleCall.on('roleCalledToAdd', (user,guild,role) => if(!guild.roles.get(role).members.has(user.id))	guild.members.get(user.id).addRole(role));
-
-roleCall.on('roleCalledToRemove' (user,guild,role) => if(guild.roles.get(role).members.has(user.id)) guild.members.get(user.id).removeRole(role));
 
 //this event triggers when a message is sent in a channel the bot has access to
 client.on("message", async message => {
@@ -196,7 +207,7 @@ client.on("message", async message => {
 				});
 				if(githubResponseA)
 				{
-					return; //should limit this to one high-res hugemoji (will stop all emojis after it tho)
+					return; //should add limit of one high-res hugemoji per message (will stop all emojis after it tho)
 				}
 			}
 		});
