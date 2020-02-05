@@ -1,0 +1,6 @@
+{
+	"autoReconnect": true,
+	"apiRequestMethod": "burst",
+	"disabledEvents": ["TYPING_START","TYPING_STOP"],
+	"fetchAllMembers": true
+}

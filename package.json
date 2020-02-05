@@ -1,0 +1,20 @@
+{
+  "name": "cpsc-bot",
+  "version": "0.1.0",
+  "description": "bot for GU cpsc discord",
+  "main": "guCpscBot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "https://github.com/wakfi/cpsc-rolecall-bot",
+  "author": "wakfi",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^11.5.1",
+    "emoji-unicode": "^2.0.0",
+    "fs-extra": "^8.1.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.5",
+    "svg-to-png": "^4.0.0"
+  }
+}
