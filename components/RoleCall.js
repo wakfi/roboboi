@@ -20,6 +20,7 @@ class RoleCall
 		@type:string channelId,
 		@type:string messageId
 		the IDs are used to target/retrieve the role call message
+		
 	 Each RoleCall can handle up to 20 roles due to Discord limiting messages to 20 reactions/message. 
 	 Make additional role call messages and additional, seperate RoleCall objects for them if you need
 	 to call more roles.
@@ -68,7 +69,7 @@ class RoleCall
 				}
 			});
 			
-			//wait until *this finishes adding its own reactions before adding the reaction listeners, so that it doesnt try to handle iteself
+			//wait until client finishes adding its own reactions before adding the reaction listeners, so that it doesnt try to handle iteself
 			Promise.all(reactArr).then(async done => 
 			{
 				this.client.setMaxListeners(this.client.getMaxListeners() + 2);
