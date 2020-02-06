@@ -1,8 +1,10 @@
 # Components
 Extra files for running and operating the bot
 
-
-
+<br/>
+<br/>
+<br/>
+<br/>
 
 ### Role-Emoji pairings (from roleCallConfig.json and roleCallConfigContinued.json)
 {"role": "674309198166753310", "emoji": "☄️"} - Alumni
