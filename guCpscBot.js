@@ -11,9 +11,10 @@ const client = new Discord.Client(clientOps);
 
 
 //--------------------------------------------------------------//
-//		  GU CPSC Bot v0.9.0  ~~ by ~~  wakfi#6999  u/wakfi		//
-//			source code at https://github.com/wakfi/			//
-//				Open Source Under MIT License (2019)			//
+//		  GU CPSC Bot v1.0.0  ~~ by ~~  wakfi#6999  u/wakfi		//
+//					-source code available at- 					//
+//			https://github.com/wakfi/cpsc-rolecall-bot			//
+//				Open Source Under MIT License (2020)			//
 //--------------------------------------------------------------//
 
 var d = new Date();
