@@ -11,7 +11,7 @@ const client = new Discord.Client(clientOps);
 
 
 //--------------------------------------------------------------//
-//		  GU CPSC Bot v0.3.0  ~~ by ~~  wakfi#6999  u/wakfi		//
+//		  GU CPSC Bot v0.4.0  ~~ by ~~  wakfi#6999  u/wakfi		//
 //			source code at https://github.com/wakfi/			//
 //				Open Source Under MIT License (2019)			//
 //--------------------------------------------------------------//
@@ -218,6 +218,35 @@ client.on("message", async message => {
 			}
 		});
 	}
+	
+	if(message.content.indexOf(config.prefix) !== 0) return;
+	
+	console.log("processing " + command + " command");
+	
+	// commands from users using prefix go below here
+	let commandLUT = {
+		//utilizes a bulk message deltion feature available to bots, able to do up to 100 messages at once, minimum 3. Adjusted to erase command message as well
+		"purge": async function() {
+			if(message.guild.members.get(message.author.id).highestRole.calculatedPosition <= message.guild.members.get(client.user.id).highestRole.calculatedPosition)
+				return message.author.send(`Sorry, you don't have permissions to use this!`);
+			// This command removes all messages from all users in the channel, up to 100
+			
+			// get the delete count, as an actual number.
+			const deleteCount = parseInt(args[0], 10) + 1;
+			
+			// Ooooh nice, combined conditions. <3
+			if(!deleteCount || deleteCount < 2 || deleteCount > 100)
+				return message.reply(`Please provide a number between 2 and 99 (inclusive) for the number of messages to delete`);
+			
+			// So we get our messages, and delete them. Simple enough, right?
+			const fetched = await message.channel.fetchMessages({count: deleteCount});
+			message.channel.bulkDelete(deleteCount)
+			.catch(error => message.reply(`Couldn't delete messages because of: ${error}`));
+		}
+	}
+	
+	let execute = commandLUT[command] || async function(){}
+	execute();
 });
 
 client.login(config.token);
