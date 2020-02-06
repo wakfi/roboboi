@@ -11,7 +11,7 @@ const client = new Discord.Client(clientOps);
 
 
 //--------------------------------------------------------------//
-//		  GU CPSC Bot v0.2.0  ~~ by ~~  wakfi#6999  u/wakfi		//
+//		  GU CPSC Bot v0.3.0  ~~ by ~~  wakfi#6999  u/wakfi		//
 //			source code at https://github.com/wakfi/			//
 //				Open Source Under MIT License (2019)			//
 //--------------------------------------------------------------//
@@ -50,7 +50,9 @@ function addTimestampLogs()
 
 const config = require('./components/config.json');
 const roleCallConfig = require('./components/roleCallConfig.json');
+const roleCallConfigContinued = require('./components/roleCallConfigContinued.json');
 var roleCall;
+var roleCallContinued;
 
 var myGuilds = [];
 var myChannels = [];
@@ -62,23 +64,14 @@ client.on("ready", async () => {
 	
 	addTimestampLogs();
 	roleCall = new RoleCall(client,roleCallConfig);
+	roleCallContinued = new RoleCall(client,roleCallConfigContinued);
 	console.log(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} guilds.`);
 	//client.user.setActivity(`Type ${config.prefix}help for help`);
 	client.user.setActivity(`Beep Boop`);
 	
-	/* let year = await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].fetchMessage(`674525537376403457`);
-	let major = await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].fetchMessage(`674526440934604813`);
-	let classes = await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].fetchMessage(`674527325408198656`);
-	let msgString = ``;
-	year.content.split('\n').map(emoji => msgString+= `${emoji} = placeholder text because i'm generating this via bot\n`);
-	await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].send(msgString);
-	msgString = ``;
-	major.content.split('\n').map(emoji => msgString+= `${emoji} = placeholder text because i'm generating this via bot\n`);
-	await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].send(msgString);
-	msgString = ``;
-	classes.content.split('\n').map(emoji => msgString+= `${emoji} = placeholder text because i'm generating this via bot\n`);
-	await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].send(msgString);
-	await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].send(`React below for roles`); */
+	/* let msgStr = ``;
+	client.guilds.array()[myGuilds[0]].roles.array().map(role => msgStr += `${role.id} - ${role.name!=='@everyone'?role.name:'everyone'}\n`);
+	await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0]].send(msgStr); */
 });
 
 //[helper function] returns the index of a guild (passed by name) in the client.guilds.array()
@@ -112,6 +105,15 @@ function fetchChannel(guild,id)
 	});
 }
 
+//[helper function] sends a specific user (in this case myself) a desired message. Allows simpler debugging
+function sendMe(content) {
+	client.fetchUser("193160566334947340")
+	.then(wakfi => {
+		wakfi.send(content).catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err}`)});
+	})
+	.catch(console.error);
+}
+
 //This event triggers when the bot joins a guild.
 client.on("guildCreate", guild => {
 	console.log(`New guild joined: ${guild.name} (id: ${guild.id}). This guild has ${guild.memberCount} members!`);
@@ -123,7 +125,11 @@ client.on("guildDelete", guild => {
 });
 
 //runs when a new user joins the server
-client.on("guildMemberAdd", member => {}); //nothing
+client.on("guildMemberAdd", member => {
+	//adds Computer Science Student role to all new entrants of the server
+	const baseRoleId = '674746958170292224';
+	member.addRole(baseRoleId);
+});
 
 //runs when a user leaves the server
 client.on("guildMemberRemove", member => {}); //nothing
