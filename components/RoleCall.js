@@ -69,9 +69,8 @@ class RoleCall
 				this.client.on(`messageReactionRemove`, this.reactionRemoved.bind(this));
 				console.log(`done`);
 			});
-		});
-		
-		
+		})
+		.catch(err => console.error(`Error retrieving role call message: ${err}`));
 	}
 	
 	reactionAdded(reaction,user)
