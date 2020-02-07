@@ -9,14 +9,6 @@ const emojiMap = require('./components/emojilib.json');
 const clientOps = require('./components/clientOps.json');
 const client = new Discord.Client(clientOps);
 
-
-//--------------------------------------------------------------//
-//		  GU CPSC Bot v1.0.0  ~~ by ~~  wakfi#6999  u/wakfi		//
-//					-source code available at- 					//
-//			https://github.com/wakfi/cpsc-rolecall-bot			//
-//				Open Source Under MIT License (2020)			//
-//--------------------------------------------------------------//
-
 var d = new Date();
 //adds timestamps to log outputs
 function addTimestampLogs() 
