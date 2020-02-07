@@ -14,7 +14,7 @@ class RoleCall
 	/*
 	 
 	 @param client: Discord.Client object representing the bot client
-	 @param rollIn: JSON containing: 
+	 @param config: JSON containing: 
 		@type:array roleInputArray of objects with properties{ "role":string, "emoji":string },
 		@type:string guildId, 
 		@type:string channelId,
@@ -26,11 +26,11 @@ class RoleCall
 	 to call more roles.
 		
 	*/
-	constructor(client,rollIn) 
+	constructor(client,config) 
 	{
 		this.client = client; //this is the syntax for declaring object properties in JS
-		this.guild = client.guilds.get(rollIn.guildId); 
-		this.guild.channels.get(rollIn.channelId).fetchMessage(rollIn.messageId).then(theMessage =>
+		this.guild = client.guilds.get(config.guildId); 
+		this.guild.channels.get(config.channelId).fetchMessage(config.messageId).then(theMessage =>
 		{
 			this.message = theMessage; //because we need the message object, we have to retrieve it, and because internet, this takes time. so we have to wait and set it here
 			this.roles = new Collection(); //@type: Collection<Snowflake, Role> where Snowflake is the snowflake of the emoji that is associate with the role
@@ -38,7 +38,7 @@ class RoleCall
 			let reactArr = []; //this is a local variable that will be used during construction
 			
 			//set roles collection. Collection is an extension of javascript Map object with expanded functionality, primarily for mapping ID (aka snowflake) to object
-			rollIn.roleInputArray.map(roleToCall => { 
+			config.roleInputArray.map(roleToCall => { 
 				if(this.guild.roles.has(roleToCall.role))
 				{
 					this.roles.set(roleToCall.emoji, this.guild.roles.get(roleToCall.role));
@@ -57,7 +57,7 @@ class RoleCall
 			});
 			
 			//fill in any remaining reactions as required in order to fill out collections
-			if(this.reactions.size < rollIn.roleInputArray.length) rollIn.roleInputArray.map(roleToCall => { 
+			if(this.reactions.size < config.roleInputArray.length) config.roleInputArray.map(roleToCall => { 
 				if(!this.reactions.has(roleToCall.emoji))
 				{
 					let emoji = roleToCall.emoji.includes(`<`) ? guild.emoji.names.get(roleToCall.emoji) : roleToCall.emoji;
