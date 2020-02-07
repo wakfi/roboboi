@@ -82,6 +82,7 @@ class RoleCall
 		.catch(err => console.error(`Error retrieving role call message: ${err}`));
 	}
 	
+	//function called by event listener to handle reactionAdd events
 	reactionAdded(reaction,user)
 	{
 		if(reaction.message.id != this.message.id) return;
@@ -96,6 +97,7 @@ class RoleCall
 		}
 	}
 	
+	//function called by event listener to handle reactionRemove events - this event is not triggered by the "Remove All Reactions" button
 	reactionRemoved(reaction,user)
 	{
 		if(reaction.message.id != this.message.id) return;
