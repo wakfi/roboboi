@@ -1,5 +1,6 @@
 #to ignore
 components/config.json
+poll_results/*.json
 
 
 # Node specific ignores
