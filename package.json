@@ -1,6 +1,6 @@
 {
   "name": "cpsc-bot",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "bot for GU cpsc discord",
   "main": "guCpscBot.js",
   "scripts": {
@@ -10,6 +10,7 @@
   "author": "wakfi",
   "license": "MIT",
   "dependencies": {
+    "discord-role-call": "^1.0.4",
     "discord.js": "^11.5.1",
     "emoji-unicode": "^2.0.0",
     "fs-extra": "^8.1.0",
