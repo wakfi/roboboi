@@ -1,4 +1,4 @@
-# bot for GU cpsc discord
+# Bot for GU cpsc discord
 The actual bot is guCpscBot.js which is in the root directory. The hugemoji code is located here.
 <br/>
 
