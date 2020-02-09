@@ -67,14 +67,12 @@ var myChannels = [];
 client.on("ready", async () => {
 	//fetch guilds and channels
 	 myGuilds.push(await fetchGuild('673769572804853791'));
-	 console.log(await initializeChannelsFromArray(0,channelIdArray));
-		// myChannels[0].push(await fetchChannel(client.guilds.array()[myGuilds[0]], '674352244136869891'));
+	 await initializeChannelsFromArray(0,channelIdArray);
 	addTimestampLogs();
-	//roleCall = new RoleCall(client,roleCallConfig);
-	//roleCallContinued = new RoleCall(client,roleCallConfigContinued);
+	roleCall = new RoleCall(client,roleCallConfig);
+	roleCallContinued = new RoleCall(client,roleCallConfigContinued);
 	console.log(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} guilds.`);
 	client.user.setActivity(`Beep Boop`);
-	myChannels[0].map(index => console.log(client.guilds.array()[myGuilds[0]].channels.array()[index].name));
 });
 
 //[helper function] recursively initalize a large amount of channels
@@ -117,7 +115,6 @@ function fetchChannel(guild,id)
 		{
 			if(arr[i].id == id)
 			{
-				console.log(`Found ${arr[i].name}`);
 				resolve(i);
 			}
 		}
