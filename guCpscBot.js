@@ -1,10 +1,14 @@
+function main()
+{
+	
 const Discord = require('discord.js');
 var rp = require('request-promise');
 const emojiUnicode = require('emoji-unicode');
 var svgToPng = require('svg-to-png');
 var path = require('path');
 var fs = require('fs-extra');
-const RoleCall = require('discord-role-call');
+//const RoleCall = require('discord-role-call');
+const RoleCall = require('../discord-role-call/RoleCall.js');
 const PollCollector = require('./components/PollCollector.js');
 const recordFile = require('./components/recordFile.js');
 const emojiMap = require('./components/emojilib.json');
@@ -57,8 +61,12 @@ const roleCallConfigContinued = require('./components/roleCallConfigContinued.js
  cannot be instantiated here because the client has to login
  first, so they have to be instantiated in .ready (below)
 */
-var roleCall;
-var roleCallContinued;
+var roleCall = new RoleCall();
+var roleCallContinued = new RoleCall();
+
+const yearRoles = new Discord.Collection();
+const majorRoles = new Discord.Collection();
+const courseRoles = new Discord.Collection();
 
 var myGuilds = [];
 var myChannels = [];
@@ -71,8 +79,65 @@ client.on("ready", async () => {
 	addTimestampLogs();
 	roleCall = new RoleCall(client,roleCallConfig);
 	roleCallContinued = new RoleCall(client,roleCallConfigContinued);
+	
+	let firstRoleArr = roleCallConfig.roleInputArray;
+	for(let i = 0; i < 5; i++){yearRoles.set(firstRoleArr[i].role, client.guilds.array()[myGuilds[0]].roles.get(firstRoleArr[i].role))}
+	for(let i = 5; i < 10; i++){majorRoles.set(firstRoleArr[i].role, client.guilds.array()[myGuilds[0]].roles.get(firstRoleArr[i].role))}
+	for(let i = 10; i < firstRoleArr.length; i++){courseRoles.set(firstRoleArr[i].role, client.guilds.array()[myGuilds[0]].roles.get(firstRoleArr[i].role))}
+	let secondRoleArr = roleCallConfigContinued.roleInputArray;
+	for(let i = 0; i < secondRoleArr.length; i++){courseRoles.set(secondRoleArr[i].role, client.guilds.array()[myGuilds[0]].roles.get(secondRoleArr[i].role))}
+	
+	console.log(`Year roles: ${yearRoles.array().map(role=>role.name + ' ')}\n`);
+	console.log(`Major roles: ${majorRoles.array().map(role=>role.name + ' ')}\n`);
+	console.log(`Course roles: ${courseRoles.array().map(role=>role.name + ' ')}\n`);
+	
+	
 	console.log(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} guilds.`);
 	client.user.setActivity(`Beep Boop`);
+	
+	
+	roleCall.on('roleReactionAdd', (reaction,member,role) =>
+	{
+		console.log(`found event add`);
+		if(!role.members.has(member.id)) //check if user already has role
+		{
+			let addTheRole = true;
+			if(yearRoles.has(role.id)) //check if year role
+			{
+				yearRoles.array().map(role => addTheRole = addTheRole && !role.members.has(member.id)); //check if user already has a year role
+			}
+			
+			addTheRole ? roleCall.addRole(reaction,member,role) :
+						 reaction.remove(member)				; 
+		}
+	});
+
+	roleCallContinued.on('roleReactionAdd', (reaction,member,role) =>
+	{
+		console.log(`found event add`);
+		if(!role.members.has(member.id)) //check if user does not have role
+		{
+			roleCall.addRole(reaction,member,role);
+		}
+	});
+
+	roleCall.on('roleReactionRemove', (reaction,member,role) =>
+	{
+		console.log(`found event remove`);
+		if(role.members.has(member.id)) //check if user does not have role
+		{
+			roleCall.removeRole(reaction,member,role);
+		}
+	});
+
+	roleCallContinued.on('roleReactionRemove', (reaction,member,role) =>
+	{
+		console.log(`found event remove`);
+		if(role.members.has(member.id)) //check if user does not have role
+		{
+			roleCallContinued.removeRole(reaction,member,role);
+		}
+	});
 });
 
 //[helper function] recursively initalize a large amount of channels
@@ -448,5 +513,11 @@ client.on("message", async message => {
 	execute();
 });
 
+
+
 //logs client in
 client.login(config.token);
+
+}
+
+main();
