@@ -7,7 +7,7 @@ const emojiUnicode = require('emoji-unicode');
 var svgToPng = require('svg-to-png');
 var path = require('path');
 var fs = require('fs-extra');
-const RoleCall = require('discord-role-call');
+const RoleCall = require('../../discord-role-call/src/RoleCall.js');
 const PollCollector = require('../components/PollCollector.js');
 const recordFile = require('../components/recordFile.js');
 const emojiMap = require('../components/emojilib.json');
@@ -60,8 +60,8 @@ const roleCallConfigContinued = require('../components/roleCallConfigContinued.j
  cannot be instantiated here because the client has to login
  first, so they have to be instantiated in .ready (below)
 */
-var roleCall = new RoleCall();
-var roleCallContinued = new RoleCall();
+var roleCall;
+var roleCallContinued;
 
 const yearRoles = new Discord.Collection();
 const majorRoles = new Discord.Collection();
@@ -76,9 +76,6 @@ client.on("ready", async () => {
 	 myGuilds.push(await fetchGuild('673769572804853791'));
 	 await initializeChannelsFromArray(0,channelIdArray);
 	addTimestampLogs();
-	roleCall = new RoleCall(client,roleCallConfig);
-	roleCallContinued = new RoleCall(client,roleCallConfigContinued);
-	
 	let firstRoleArr = roleCallConfig.roleInputArray;
 	let secondRoleArr = roleCallConfigContinued.roleInputArray;
 	for(let i = 0; i < 5; i++)						{ yearRoles.set(firstRoleArr[i].role, client.guilds.array()[myGuilds[0]].roles.get(firstRoleArr[i].role)) }
@@ -89,6 +86,14 @@ client.on("ready", async () => {
 	console.log(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} guilds.`);
 	client.user.setActivity(`Beep Boop`);
 	
+	try	{
+		roleCall = new RoleCall(client,roleCallConfig);
+		roleCallContinued = new RoleCall(client,roleCallConfigContinued);
+	} catch(err) {
+		await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0][0]].send(`oh no we boned`);
+		throw err;
+	}
+		
 	
 		roleCall.on('roleReactionAdd', (reaction,member,role) =>
 		{
@@ -131,7 +136,6 @@ client.on("ready", async () => {
 				.catch(err=>{console.error(err.stack)});
 			}
 		});
-	
 });
 
 //[helper function] recursively initalize a large amount of channels
@@ -514,4 +518,15 @@ client.login(config.token);
 
 }
 
+/*
+
+ If you noticed that the entire program is wrapped in main(),
+ nice! Apprarently, this makes things faster. Like quite a good
+ bit faster. Something to do with globabl variables existing
+ makes things slow, so by wrapping everything in one big function,
+ we get only function scope variables (stack), which are faster.
+ Thus, this call to main is *technically* the only line in the
+ program.
+ 
+ */
 main();
