@@ -1,8 +1,8 @@
 {
-  "name": "cpsc-bot",
+  "name": "roboboi",
   "version": "1.1.0",
   "description": "bot for GU cpsc discord",
-  "main": "guCpscBot.js",
+  "main": "src/roboboi.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
