@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": "https://github.com/wakfi/cpsc-rolecall-bot",
+  "repository": "https://github.com/wakfi/roboboi",
   "author": "wakfi",
   "license": "MIT",
   "dependencies": {
