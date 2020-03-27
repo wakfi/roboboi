@@ -1,7 +1,7 @@
 #to ignore
 components/config.json
 poll_results/*.json
-
+src/roboghost.js
 
 # Node specific ignores
 #

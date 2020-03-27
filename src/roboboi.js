@@ -10,8 +10,33 @@ var fs = require('fs-extra');
 const RoleCall = require('discord-role-call');
 const PollCollector = require('../components/PollCollector.js');
 const recordFile = require('../components/recordFile.js');
-const emojiMap = require('../components/emojilib.json');
 const clientOps = require('../components/clientOps.json');
+const emojiMap = require('../components/emojilib.json');
+
+/* emojiMap license
+The MIT License (MIT)
+
+Copyright (c) 2014 Mu-An Chiou
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 const client = new Discord.Client(clientOps);
 
 var d = new Date();
@@ -72,6 +97,7 @@ var myChannels = [];
 
 //I call this .ready, even though there isn't actually a .ready anywhere
 client.on("ready", async () => {
+	const memberRoleId = '674746958170292224';
 	//fetch guilds and channels
 	 myGuilds.push(await fetchGuild('673769572804853791'));
 	 await initializeChannelsFromArray(0,channelIdArray);
@@ -105,8 +131,16 @@ client.on("ready", async () => {
 					yearRoles.array().map(role => addTheRole = addTheRole && !role.members.has(member.id)); //check if user already has a year role
 				}
 				
-				addTheRole ? roleCall.addRole(reaction,member,role).catch(err=>{console.error(err.stack)})	:
-							 reaction.remove(member)														; 
+				addTheRole ? roleCall.addRole(member,role).catch(err=>{console.error(err.stack)})	:
+							 reaction.remove(member)												;
+							 
+				if(addTheRole)
+				{
+					if(!member.roles.has(memberRoleId))
+					{
+						roleCall.addRole(member,member.guild.roles.get(memberRoleId));
+					}
+				}
 			}
 		});
 
@@ -114,8 +148,13 @@ client.on("ready", async () => {
 		{
 			if(!role.members.has(member.id)) //check if user already has role
 			{
-				roleCall.addRole(reaction,member,role)
+				roleCall.addRole(member,role)
 				.catch(err=>{console.error(err.stack)});
+				
+				if(!member.roles.has(memberRoleId))
+				{
+					roleCall.addRole(member,member.guild.roles.get(memberRoleId));
+				}
 			}
 		});
 
@@ -123,7 +162,19 @@ client.on("ready", async () => {
 		{
 			if(role.members.has(member.id)) //check if user does not have role
 			{
-				roleCall.removeRole(reaction,member,role)
+				roleCall.removeRole(member,role)
+				.then(newMember => 
+				{
+					if(newMember.roles.size == 2)
+					{
+						if(newMember.roles.has(memberRoleId))
+						{
+							roleCall.removeRole(newMember,newMember.guild.roles.get(memberRoleId));
+						} else {
+							roleCall.addRole(newMember,newMember.guild.roles.get(memberRoleId));
+						}
+					}
+				})
 				.catch(err=>{console.error(err.stack)});
 			}
 		});
@@ -132,7 +183,19 @@ client.on("ready", async () => {
 		{
 			if(role.members.has(member.id)) //check if user does not have role
 			{
-				roleCallContinued.removeRole(reaction,member,role)
+				roleCall.removeRole(member,role)
+				.then(newMember => 
+				{
+					if(newMember.roles.size == 2)
+					{
+						if(newMember.roles.has(memberRoleId))
+						{
+							roleCall.removeRole(newMember,newMember.guild.roles.get(memberRoleId));
+						} else {
+							roleCall.addRole(newMember,newMember.guild.roles.get(memberRoleId));
+						}
+					}
+				})
 				.catch(err=>{console.error(err.stack)});
 			}
 		});
@@ -196,11 +259,7 @@ client.on("guildDelete", guild => {
 });
 
 //runs when a new user joins the server
-client.on("guildMemberAdd", member => {
-	//adds Computer Science Student role to all new entrants of the server
-	const baseRoleId = '674746958170292224';
-	member.addRole(baseRoleId);
-});
+client.on("guildMemberAdd", member => {});    //nothing
 
 //runs when a user leaves the server
 client.on("guildMemberRemove", member => {}); //nothing
