@@ -370,8 +370,54 @@ client.on("message", async message => {
 	// commands from users using prefix go below here
 	let commandLUT = {
 		//utilizes a bulk message deltion feature available to bots, able to do up to 100 messages at once, minimum 3. Adjusted to quietly erase command message as well
+		//Emergency Kill switch, added after channel spam so that i would have a way other than ssh to stop it
+		"kill": async function() {
+			const minimumPermissions = 0x80; //permission bitfield for VIEW_AUDIT_LOG
+			if(message.member.hasPermission(minimumPermissions,false,true,true)) 
+			{
+				console.error(`KILL COMMAND EXECUTED HERE`); //leaves a clear message in the log to make the location easy to find,
+				process.exit(1);							 //in the event i want to know where in the log this occurred. exits with error.
+			}
+		},
+		
+		//non-emergency restart, for convenience. the process manager (pm2) will restart it automatically
+		"restart": async function() {
+			const minimumPermissions = 0x80; //permission bitfield for VIEW_AUDIT_LOG
+			if(message.member.hasPermission(minimumPermissions,false,true,true))
+			{
+				process.exit(0);
+			}
+		},
+		
+		// Calculates ping between sending a message and editing it, giving a nice round-trip latency.
+		// The second ping is an average latency between the bot and the websocket server (one-way, not round-trip)
+		"ping": async function() {
+			const m = await message.channel.send("Ping?");
+			m.edit(`Pong! Latency is ${m.createdTimestamp - message.createdTimestamp}ms. API Latency is ${Math.round(client.ping)}ms`);
+		},
+		
+		//responds with the current time connected to the discord server in hh:mm:ss format. If hour exceeds 99, will adjust to triple digit, etc
+		"uptime": async function() {
+			function pad(n, z) {
+				z = z || 2;
+				return ('00' + n).slice(-z);
+			}
+			let s = client.uptime;
+			let ms = s % 1000;
+			s = (s - ms) / 1000;
+			let secs = s % 60;
+			s = (s - secs) / 60;
+			let mins = s % 60;
+			let hrs = (s - mins) / 60;
+			let p = Math.floor(Math.log10(hrs)) + 1;
+			if(Math.log10(hrs) < 2) {
+				p = false;
+			}
+			message.channel.send("I have been running for " + pad(hrs, p) + ':' + pad(mins) + ':' + pad(secs)).catch(err=>{});
+		},
+		
 		"purge": async function() {
-			const minimumPermissions = 0x2010; //permission bitfield for MANAGE_MESSAGES and MANAGE_CHANNELS
+			const minimumPermissions = 0x80; //permission bitfield for VIEW_AUDIT_LOG
 			if(!message.member.hasPermission(minimumPermissions,false,true,true))
 				return message.author.send(`Sorry, you don't have permissions to use this!`);
 			// This command removes all messages from all users in the channel, up to 100
@@ -389,11 +435,41 @@ client.on("message", async message => {
 			.catch(error => message.reply(`Couldn't delete messages because of: ${error}`));
 		},
 		
+		//this is a way I've found of aliasing commands when using a LUT
+		//sends the user a help dialog listing available commands
+		"command": async function(){commandLUT["help"]()},
+		"commands": async function(){commandLUT["help"]()},
+		"?": async function(){commandLUT["help"]()},
+		"help": async function() {
+			let comms = new Discord.RichEmbed()
+				.setTitle(`Command Help`)
+				.setAuthor(client.user.username, client.user.avatarURL)
+				.setDescription(`Please contact [@wakfi#6999](https://discordapp.com/users/193160566334947340) with additional questions`)
+				.setColor(0xFF00FF)
+				.setFooter(`${config.prefix}commands, ${config.prefix}command, ${config.prefix}?`)
+				.setTimestamp(new Date())
+				.addField(`${config.prefix}ping`,`Provides the current client latency`)
+				.addField(`${config.prefix}uptime`,`States how long the bot has been online and connected to Discord continuously, since the most recent interuption`)
+				.addField(`Role Call`,`Select roles that indicate your Year, Major, and what courses you are in and have taken, by pressing the reaction buttons on the messages in [#welcome](https://discordapp.com/channels/673769572804853791/674870421237268483/674874071099375637). Users are limited in the channels they can view until they have chosen at least one role`);
+			const minimumPermissions = 0x80; //permission bitfield for VIEW_AUDIT_LOG
+			if(client.guilds.array()[myGuilds[0]].members.get(message.author.id).hasPermission(minimumPermissions,false,true,true))
+			{
+				comms
+				.addBlankField()
+				.addField(`Special Commands`,`For Admin Privileges.`)
+				.addField(`${config.prefix}kill`,`Emergency Shutoff. Should restart on its own`)
+				.addField(`${config.prefix}restart`,`Non-emergency shutoff,`)
+				.addField(`${config.prefix}purge <2-99>`,`Will delete the most recent 2-99 messages in the channel that you execute this command in. Good for cleaning up spam`)
+				.addField(`${config.prefix}poll <question>`,`Follow the prompts after that. I can provide a general blueprint of the syntax for all of the prompts if wanted`);
+			}
+			message.author.send(comms);	
+		},
+		
 		"poll": async function() {
 			let duration = 7200000; //default duration is 2 hours
 			let targetChan = myChannels[0][1]; //defualt target channel is the general chat channel
 			if(message.member.highestRole.calculatedPosition <= message.guild.members.get(client.user.id).highestRole.calculatedPosition)
-				return message.author.send(`Sorry, you don't have permissions to use this!`); //verify permission
+				return message.author.send(`Sorry, you don't have permissions to use this!`); //verify permission; must be Tutor, TA, Mod, or Admin
 			
 			if(message.mentions.channels.size > 0) //optional target channel specicification other than sniff-discussion
 			{
