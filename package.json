@@ -11,10 +11,10 @@
   "license": "MIT",
   "dependencies": {
     "discord-role-call": "^2.1.0",
-    "discord.js": "11.5.1",
+    "discord.js": "~11.5.1",
     "emoji-unicode": "^2.0.0",
     "fs-extra": "^8.1.0",
-    "request": "^2.88.0",
+    "request": "^2.88.2",
     "request-promise": "^4.2.5",
     "svg-to-png": "^4.0.0"
   }
