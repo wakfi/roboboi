@@ -1,6 +1,6 @@
 function main()
 {
-	
+	console.log("CHANGES NOT TESTED"); // <--------
 const Discord = require('discord.js');
 var rp = require('request-promise');
 const emojiUnicode = require('emoji-unicode');
@@ -11,9 +11,9 @@ const RoleCall = require('discord-role-call');
 const PollCollector = require('../components/PollCollector.js');
 const recordFile = require('../components/recordFile.js');
 const clientOps = require('../components/clientOps.json');
-const emojiMap = require('../components/emojilib.json');
 
-/* emojiMap license
+const emojiMap = require('../components/emojilib.json');
+/* license for emojilib.json
 The MIT License (MIT)
 
 Copyright (c) 2014 Mu-An Chiou
@@ -72,7 +72,9 @@ function addTimestampLogs()
 }
 
 //config information for the bot
+const server = "673769572804853791"; //guild ID
 const config = require('../components/config.json');
+const namedChannels = require('../components/namedChannels.json');
 const channelInit = require('../components/channelInit.json');
 const channelIdArray = channelInit.channelIdArray;
 
@@ -95,19 +97,24 @@ const courseRoles = new Discord.Collection();
 var myGuilds = [];
 var myChannels = [];
 
+var pollChannelIndex;
+
 //I call this .ready, even though there isn't actually a .ready anywhere
 client.on("ready", async () => {
 	const memberRoleId = '674746958170292224';
+	/*
 	//fetch guilds and channels
 	 myGuilds.push(await fetchGuild('673769572804853791'));
 	 await initializeChannelsFromArray(0,channelIdArray);
+	 pollChannelIndex = await fetchChannel('697049765925355581');
+	 */
 	addTimestampLogs();
 	let firstRoleArr = roleCallConfig.roleInputArray;
 	let secondRoleArr = roleCallConfigContinued.roleInputArray;
-	for(let i = 0; i < 5; i++)						{ yearRoles.set(firstRoleArr[i].role, client.guilds.array()[myGuilds[0]].roles.get(firstRoleArr[i].role)) }
-	for(let i = 5; i < 10; i++)						{ majorRoles.set(firstRoleArr[i].role, client.guilds.array()[myGuilds[0]].roles.get(firstRoleArr[i].role)) }
-	for(let i = 10; i < firstRoleArr.length; i++)	{ courseRoles.set(firstRoleArr[i].role, client.guilds.array()[myGuilds[0]].roles.get(firstRoleArr[i].role)) }
-	for(let i = 0; i < secondRoleArr.length; i++)	{ courseRoles.set(secondRoleArr[i].role, client.guilds.array()[myGuilds[0]].roles.get(secondRoleArr[i].role)) }
+	for(let i = 0; i < 5; i++)						{ yearRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
+	for(let i = 5; i < 10; i++)						{ majorRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
+	for(let i = 10; i < firstRoleArr.length; i++)	{ courseRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
+	for(let i = 0; i < secondRoleArr.length; i++)	{ courseRoles.set(secondRoleArr[i].role, client.guilds.get(server).roles.get(secondRoleArr[i].role)) }
 	
 	console.log(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} guilds.`);
 	client.user.setActivity(`Beep Boop`);
@@ -116,7 +123,7 @@ client.on("ready", async () => {
 		roleCall = new RoleCall(client,roleCallConfig);
 		roleCallContinued = new RoleCall(client,roleCallConfigContinued);
 	} catch(err) {
-		await client.guilds.array()[myGuilds[0]].channels.array()[myChannels[0][0]].send(`oh no we boned`);
+		await client.guilds.get(server).channels.array()[myChannels[0][0]].send(`oh no we boned`);
 		throw err;
 	}
 		
@@ -266,6 +273,7 @@ client.on("guildMemberRemove", member => {}); //nothing
 
 //this event triggers when a message is sent in a channel the bot has access to
 client.on("message", async message => {
+	
 	/*
 	 This event will run on every single message received, from any channel or DM.
 	 I's good practice to ignore other bots. This also makes your bot ignore itself
@@ -277,6 +285,9 @@ client.on("message", async message => {
 		return;
 	}
 	
+	//ignore messages not including our prefix nor @ the bot
+	if(message.content.indexOf(config.prefix) !== 0 && !message.isMentioned(client.user)) return;
+	
 	/* 
 	 Here we separate our "command" name, and our "arguments" for the command. 
 	 e.g. if we have the message "!say Is this the real life?" , we'll get the following:
@@ -286,21 +297,136 @@ client.on("message", async message => {
 	 Splits the message into space seperated words, cuts off any white space from the end,
 	 and grabs the command word from the from the front. This is the magic.
 	*/
-	const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
-	const command = args.shift();
 	
-	//hugemoji handler
-	if(message.isMentioned(client.user)) 
-	{	
-		const discordAssetUri = `https://cdn.discordapp.com/emojis/`;
-		const twemojiDomain = `https://github.com/twitter/twemoji/blob/master/assets/svg/`;
-		const unicodeDomain = `https://unicode.org/emoji/charts/full-emoji-list.html`;
-		let argv = message.content.trim().split(/ +/g);
-		argv.map(async messageElement => 
-		{
+	const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
+	if(args.length < 2 && message.isMentioned(client.user))
+	{
+		cleanReply(message, `type ${config.prefix}help to see a list commands`, `10s`);
+		return;
+	}
+	const command = message.isMentioned(client.user) ? args[1] : args[0];
+	args.shift(); if(message.isMentioned(client.user)) args.shift(); //clear command and mention if present
+	
+	//console.log("processing " + command + " command");
+	
+	// commands from users using prefix go below here
+	let commandLUT = {
+		//utilizes a bulk message deltion feature available to bots, able to do up to 100 messages at once, minimum 3. Adjusted to quietly erase command message as well
+		//Emergency Kill switch, added after channel spam so that i would have a way other than ssh to stop it
+		"kill": async function() {
+			const minimumPermissions = 0x2000; //permission bitfield for MANAGE_MESSAGES
+			if(message.member.hasPermission(minimumPermissions,false,true,true)) 
+			{
+				console.error(`KILL COMMAND EXECUTED HERE`); //leaves a clear message in the log to make the location easy to find,
+				process.exit(1);							 //in the event i want to know where in the log this occurred. exits with error.
+			}
+		},
+		
+		//non-emergency restart, for convenience. the process manager (pm2) will restart it automatically
+		"restart": async function() {
+			const minimumPermissions = 0x2000; //permission bitfield for MANAGE_MESSAGES
+			if(message.member.hasPermission(minimumPermissions,false,true,true))
+			{
+				process.exit(0);
+			}
+		},
+		
+		// Calculates ping between sending a message and editing it, giving a nice round-trip latency.
+		// The second ping is an average latency between the bot and the websocket server (one-way, not round-trip)
+		"ping": async function() {
+			const m = await message.channel.send("🏓 Ping?");
+			m.edit(`🏓 Pong! Latency is ${m.createdTimestamp - message.createdTimestamp}ms. API Latency is ${Math.round(client.ping)}ms`);
+		},
+		
+		//responds with the current time connected to the discord server in hh:mm:ss format. If hour exceeds 99, will adjust to triple digit, etc
+		"uptime": async function() {
+			function pad(n, z) {
+				z = z || 2;
+				return ('00' + n).slice(-z);
+			}
+			let s = client.uptime;
+			let ms = s % 1000;
+			s = (s - ms) / 1000;
+			let secs = s % 60;
+			s = (s - secs) / 60;
+			let mins = s % 60;
+			let hrs = (s - mins) / 60;
+			let p = Math.floor(Math.log10(hrs)) + 1;
+			if(Math.log10(hrs) < 2) {
+				p = false;
+			}
+			message.channel.send("I have been running for " + pad(hrs, p) + ':' + pad(mins) + ':' + pad(secs)).catch(err=>{});
+		},
+		
+		"wakfi": async function() {
+			if(message.author.id == 193160566334947340)
+			{
+				for(let i = 0; i < 10; i++)
+				{
+					message.channel.send(`.${i}`);
+					await delay('1s');
+				}
+			}
+		},
+		
+		"info": async function() {
+			const richEmbed = new Discord.RichEmbed()
+				.setTitle(`Mini Ada`)
+				.setAuthor(`wakfi`, `https://cdn.discordapp.com/attachments/433771480505909248/698752752574005308/wakfi.png`)
+				.setDescription(`This bot was created by <@193160566334947340> for the Gonzaga Computer Science Discord Server`)
+				.setColor(0xFF00FF)
+				.setFooter(`Help commands: ${config.prefix}help, ${config.prefix}commands, ${config.prefix}command, ${config.prefix}?`)
+				.setTimestamp(new Date())
+				.addField(`Library`,`Created in JavaScript using [discord.js](https://discord.js.org/) v11.5.1, a powerful node.js module that allows you to interact with the Discord API very easily`)
+				.addField(`Repository`,`This software is licensed under the MIT license. The GitHub repository for this project can be found at: https://github.com/wakfi/roboboi`)
+			message.author.send(richEmbed)
+			.catch(err => 
+			{
+				cleanReply(message, `Something went wrong! If you're seeing this, it probably means you have Direct Messages disabled. Please enable DMs from this server in order to use this command!`, `15s`);
+			});
+		},
+		
+		//this is a way I've found of aliasing commands when using a LUT
+		//sends the user a help dialog listing available commands
+		"command": async function(){commandLUT["help"]()},
+		"commands": async function(){commandLUT["help"]()},
+		"?": async function(){commandLUT["help"]()},
+		"help": async function() {
+			const richEmbed = new Discord.RichEmbed()
+				.setTitle(`Command Help`)
+				.setAuthor(client.user.username, client.user.avatarURL)
+				.setDescription(`Please contact <@193160566334947340> with additional questions`)
+				.setColor(0xFF00FF)
+				.setFooter(`${config.prefix}commands, ${config.prefix}command, ${config.prefix}?`)
+				.setTimestamp(new Date())
+				.addField(`${config.prefix}info`,`Information about the development of this bot`)
+				.addField(`${config.prefix}ping`,`Provides the current client latency`)
+				.addField(`${config.prefix}uptime`,`States how long the bot has been online and connected to Discord continuously, since the most recent interuption`)
+				.addField(`Role Call`,`Select roles that indicate your Year, Major, and what courses you are in and have taken, by pressing the reaction buttons on the messages in <#674870421237268483>. Users are limited in the channels they can view until they have chosen at least one role`);
+			const minimumPermissions = 0x2000; //permission bitfield for MANAGE_MESSAGES
+			if(client.guilds.get(server).members.get(message.author.id).hasPermission(minimumPermissions,false,true,true))
+			{
+				richEmbed
+				.addBlankField()
+				.addField(`Special Commands`,`For Mod Privileges`)
+				.addField(`${config.prefix}kill`,`Emergency Shutoff. Should restart on its own. Use this if the bot starts spamming rapidly without reason, for example`)
+				.addField(`${config.prefix}restart`,`Non-emergency shutoff`)
+				.addField(`${config.prefix}purge <2-99>`,`Will delete the most recent 2-99 messages in the channel that you execute this command in. Good for cleaning up spam`)
+				.addField(`${config.prefix}poll <question>`,`Follow the prompts after that. I can provide a general blueprint of the syntax for all of the prompts if wanted`);
+			}
+			message.author.send(richEmbed)
+			.catch(err => 
+			{
+				cleanReply(message, `Something went wrong! If you're seeing this, it probably means you have Direct Messages disabled. Please enable DMs from this server in order to use this command!`, `15s`);
+			});
+		},
+		
+		"hugemoji": async function() {
+			const messageElement = args[0];
 			if(messageElement.includes(`>`) && messageElement.includes(`:`))
 			{
 				//emoji is a custom server emoji
+				const discordAssetUri = `https://cdn.discordapp.com/emojis/`;
 				const splitEmoji = messageElement.split(`:`);
 				const fileType = splitEmoji.shift() === `<a` ? `.gif` : `.png`; //animated or image
 				const emojiName = splitEmoji.shift();
@@ -313,6 +439,7 @@ client.on("message", async message => {
 				.catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err}`)});
 			} else if(!messageElement.includes(`>`)) {
 				//text is a string
+				const twemojiDomain = `https://github.com/twitter/twemoji/blob/master/assets/svg/`;
 				const emojiToVerify = messageElement;
 				const emojiInUnicode = emojiUnicode(emojiToVerify).split(' ').join('-');
 				const svgDomain = `${twemojiDomain}${emojiInUnicode}.svg`;
@@ -339,13 +466,16 @@ client.on("message", async message => {
 					//the order here is: get svg image from remote (save local), convert to png (save local), send png, delete local svg and png
 					const emojiName = emojiMap[messageElement] ? emojiMap[messageElement][0] : emojiInUnicode;
 					const picFolder = `file_dump`;
+					//data for vector image of emoji
 					const emojiSvg = await rp(githubResponseB.split('data-image  = "')[1].split('"')[0]);
 					await fs.outputFile(`./${picFolder}/${emojiInUnicode}.svg`,emojiSvg);
+					//convert from svg to png
 					await svgToPng.convert(path.join(__dirname,picFolder,`${emojiInUnicode}.svg`),path.join(__dirname,picFolder),{defaultWidth:722,defaultHeight:722},{type:"image/png"});
 					await message.channel.send({files: 
 						[{attachment: `./${picFolder}/${emojiInUnicode}.png`,
 						name: `${emojiName}.png`}]
 					}).catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err}`)});
+					//cleanup created files
 					await fs.remove(`./${picFolder}/${emojiInUnicode}.svg`)
 					.catch(err => {
 						console.error(err)
@@ -355,119 +485,123 @@ client.on("message", async message => {
 						console.error(err)
 					});
 				});
-				if(githubResponseA)
-				{
-					return; //should add limit of one high-res hugemoji per message (will stop all emojis after it tho). this is outside the async body so that it ends iteration immediatly
-				}
 			}
-		});
-	}
-	
-	if(message.content.indexOf(config.prefix) !== 0) return;
-	
-	console.log("processing " + command + " command");
-	
-	// commands from users using prefix go below here
-	let commandLUT = {
-		//utilizes a bulk message deltion feature available to bots, able to do up to 100 messages at once, minimum 3. Adjusted to quietly erase command message as well
-		//Emergency Kill switch, added after channel spam so that i would have a way other than ssh to stop it
-		"kill": async function() {
-			const minimumPermissions = 0x80; //permission bitfield for VIEW_AUDIT_LOG
-			if(message.member.hasPermission(minimumPermissions,false,true,true)) 
-			{
-				console.error(`KILL COMMAND EXECUTED HERE`); //leaves a clear message in the log to make the location easy to find,
-				process.exit(1);							 //in the event i want to know where in the log this occurred. exits with error.
-			}
-		},
-		
-		//non-emergency restart, for convenience. the process manager (pm2) will restart it automatically
-		"restart": async function() {
-			const minimumPermissions = 0x80; //permission bitfield for VIEW_AUDIT_LOG
-			if(message.member.hasPermission(minimumPermissions,false,true,true))
-			{
-				process.exit(0);
-			}
-		},
-		
-		// Calculates ping between sending a message and editing it, giving a nice round-trip latency.
-		// The second ping is an average latency between the bot and the websocket server (one-way, not round-trip)
-		"ping": async function() {
-			const m = await message.channel.send("Ping?");
-			m.edit(`Pong! Latency is ${m.createdTimestamp - message.createdTimestamp}ms. API Latency is ${Math.round(client.ping)}ms`);
-		},
-		
-		//responds with the current time connected to the discord server in hh:mm:ss format. If hour exceeds 99, will adjust to triple digit, etc
-		"uptime": async function() {
-			function pad(n, z) {
-				z = z || 2;
-				return ('00' + n).slice(-z);
-			}
-			let s = client.uptime;
-			let ms = s % 1000;
-			s = (s - ms) / 1000;
-			let secs = s % 60;
-			s = (s - secs) / 60;
-			let mins = s % 60;
-			let hrs = (s - mins) / 60;
-			let p = Math.floor(Math.log10(hrs)) + 1;
-			if(Math.log10(hrs) < 2) {
-				p = false;
-			}
-			message.channel.send("I have been running for " + pad(hrs, p) + ':' + pad(mins) + ':' + pad(secs)).catch(err=>{});
 		},
 		
 		"purge": async function() {
-			const minimumPermissions = 0x80; //permission bitfield for VIEW_AUDIT_LOG
+			const minimumPermissions = 0x2000; //permission bitfield for MANAGE_MESSAGES
 			if(!message.member.hasPermission(minimumPermissions,false,true,true))
-				return message.author.send(`Sorry, you don't have permissions to use this!`);
+			{
+				await cleanReply(message, `Sorry, you don't have permissions to use this!`);
+				return;
+			}
 			// This command removes all messages from all users in the channel, up to 100
+			const lastAccessibleMessageID = (await message.channel.fetchMessages({limit: 1, before: message.channel.lastMessageID})).first().id;
+			let keyword;
+			let deleteCount = 100;
+			let fetchOptions = null;
+			let startID = null;
+			let endID = message.channel.lastMessageID;
+			let afterID = null;
+			if(!args.includes(`|`))
+			{
+				// get the delete count, as an actual number.
+				deleteCount = parseInt(args[0], 10) + 1;
+				
+				fetchOptions = {limit: deleteCount};
+			} else {
+				let pipedArgs = args.join(" ").split("|");
+				pipedArgs = pipedArgs.map(arg => arg.trim().toLowerCase());
+				keyword = pipedArgs.shift();
+				if(keyword === "from")
+				{
+					startID = pipedArgs.shift();
+					const startIDNum = +startID;
+					if(isNaN(startIDNum))
+					{
+						await cleanReply(message, `Must provide a valid message ID`);
+						return;
+					}
+					const afterResult = await message.channel.fetchMessages({limit: 1, before: startID});
+					afterID = (afterResult.size == 1) ? afterResult.first().id : startID;
+					fetchOptions = {limit: deleteCount, after: afterID};
+				} else if(keyword === `between`) {
+					startID = pipedArgs.shift();
+					endID = pipedArgs.shift();
+					if(endID === lastAccessibleMessageID)
+					{
+						//changes execution to a 'from' command for simplicity, as the range selected is from some message
+						//to the bottom, which is what 'from' does
+						args[0] = `from`;
+						commandLUT["purge"]();
+						return;
+					} else {
+						const startIDNum = +startID;
+						const endIDNum = +endID;
+						if(isNaN(startIDNum) || isNaN(endIDNum))
+						{
+							await cleanReply(message, `Please provide valid message IDs`);
+							return;
+						}
+						const afterResult = await message.channel.fetchMessages({limit: 1, before: startID});
+						const beforeResult = await message.channel.fetchMessages({limit: 1, after: endID});
+						afterID = (afterResult.size == 1) ? afterResult.first().id : startID;
+						const beforeID = (beforeResult.size == 1) ? beforeResult.first().id : endID;
+						
+						const afterMessages = await message.channel.fetchMessages({limit: 100, after: afterID});
+						const beforeMessages = await message.channel.fetchMessages({limit: 100, before: beforeID});
+
+						const intersectionMessages = afterMessages.filter(msg => beforeMessages.has(msg.id));
+						deleteCount = intersectionMessages.size;
+						
+						fetchOptions = {limit: deleteCount, after: afterID};
+					}
+				} else if(keyword === "count") {
+					// get the delete limit, as an actual number.
+					deleteCount = parseInt(pipedArgs.shift(), 10) + 1;
+					
+					fetchOptions = {limit: deleteCount};
+				} else {
+					await cleanReply(message, `Unknown purge command: ${keyword}`);
+					return;
+				}
+			}
 			
-			// get the delete count, as an actual number.
-			const deleteCount = parseInt(args[0], 10) + 1;
+			if(isNaN(deleteCount))
+			{
+				await cleanReply(message, `Number of messages to delete must be a number`);
+				return;
+			}
 			
-			// combined conditions. <3 user must input between 2-99
+			// combined conditions <3 user must input between 2-99
 			if(!deleteCount || deleteCount < 3 || deleteCount > 100)
-				return message.reply(`Please provide a number between 2 and 99 (inclusive) for the number of messages to delete`);
+			{
+				await cleanReply(message, `Please provide a number between 2 and 99 (inclusive) for the number of messages to delete`);
+				return;
+			}
 			
 			// So we get our messages, and delete them. Simple enough, right?
-			const fetched = await message.channel.fetchMessages({count: deleteCount});
-			message.channel.bulkDelete(deleteCount)
-			.catch(error => message.reply(`Couldn't delete messages because of: ${error}`));
-		},
-		
-		//this is a way I've found of aliasing commands when using a LUT
-		//sends the user a help dialog listing available commands
-		"command": async function(){commandLUT["help"]()},
-		"commands": async function(){commandLUT["help"]()},
-		"?": async function(){commandLUT["help"]()},
-		"help": async function() {
-			let comms = new Discord.RichEmbed()
-				.setTitle(`Command Help`)
-				.setAuthor(client.user.username, client.user.avatarURL)
-				.setDescription(`Please contact [@wakfi#6999](https://discordapp.com/users/193160566334947340) with additional questions`)
-				.setColor(0xFF00FF)
-				.setFooter(`${config.prefix}commands, ${config.prefix}command, ${config.prefix}?`)
-				.setTimestamp(new Date())
-				.addField(`${config.prefix}ping`,`Provides the current client latency`)
-				.addField(`${config.prefix}uptime`,`States how long the bot has been online and connected to Discord continuously, since the most recent interuption`)
-				.addField(`Role Call`,`Select roles that indicate your Year, Major, and what courses you are in and have taken, by pressing the reaction buttons on the messages in [#welcome](https://discordapp.com/channels/673769572804853791/674870421237268483/674874071099375637). Users are limited in the channels they can view until they have chosen at least one role`);
-			const minimumPermissions = 0x80; //permission bitfield for VIEW_AUDIT_LOG
-			if(client.guilds.array()[myGuilds[0]].members.get(message.author.id).hasPermission(minimumPermissions,false,true,true))
+			const fetched = await message.channel.fetchMessages(fetchOptions);
+			
+			if(!fetched.has(endID) || startID && !fetched.has(startID))
 			{
-				comms
-				.addBlankField()
-				.addField(`Special Commands`,`For Admin Privileges.`)
-				.addField(`${config.prefix}kill`,`Emergency Shutoff. Should restart on its own`)
-				.addField(`${config.prefix}restart`,`Non-emergency shutoff,`)
-				.addField(`${config.prefix}purge <2-99>`,`Will delete the most recent 2-99 messages in the channel that you execute this command in. Good for cleaning up spam`)
-				.addField(`${config.prefix}poll <question>`,`Follow the prompts after that. I can provide a general blueprint of the syntax for all of the prompts if wanted`);
+				const errText = keyword === "from" ? `Message ID must be within 99 messages of the most recent message` :
+													 `The older message provided must be within 99 messages of the newer message`;
+				await cleanReply(message, errText);
+				return;
 			}
-			message.author.send(comms);	
+			
+			message.channel.bulkDelete(fetched)
+			.catch(async error => 
+			{
+				await cleanReply(message, `Couldn't delete messages because of: ${error}`);
+			});
 		},
 		
 		"poll": async function() {
-			let duration = 7200000; //default duration is 2 hours
-			let targetChan = myChannels[0][1]; //defualt target channel is the general chat channel
+			let duration = 86400000; //default duration is 24 hours
+			//let targetChan = pollChannelIndex; //defualt target channel is the general chat channel
+			let targetChan = namedChannels.polls; //defualt target channel is the general chat channel
 			if(message.member.highestRole.calculatedPosition <= message.guild.members.get(client.user.id).highestRole.calculatedPosition)
 				return message.author.send(`Sorry, you don't have permissions to use this!`); //verify permission; must be Tutor, TA, Mod, or Admin
 			
@@ -518,14 +652,14 @@ client.on("message", async message => {
 						.then(conf => { //awaits confirmation. this is the final chance to cancel, because if they say yes then supposedly this is what they want
 							if(conf.array()[0].content.slice(config.prefix.length).trim() === "y")
 							{//on yes
-								message.reply(`How long (minutes) should the poll remain open? (${config.prefix}time #) (default = 120)`); //default time 2 hours, can be any time >= 1 minute. i suppose 0 wouldn't throw any errors but that would be pretty useless
+								message.reply(`How long (minutes) should the poll remain open? (${config.prefix}time #) (default = 24 hours)`); //default time 2 hours, can be any time >= 1 minute. i suppose 0 wouldn't throw any errors but that would be pretty useless
 								message.channel.awaitMessages(mno => mno.content.startsWith(config.prefix) && mno.author === message.author, {maxMatches: 1, time: 40000, errors: ['time'] })
 								.then(async dur => { //async keyword is required in the function declaration to use await keyword
 									const life = dur.array()[0].content.slice(config.prefix.length).trim().split(/ +/g);
 									life.shift().toLowerCase();
-									let input = +life[0]; //create int from time input
+									let input = parseTime(life[0]); //create milliseconds int from time input
 									if(!isNaN(input)) //check if there was a time given, else it stays default
-										duration = input * 60000;
+										duration = input;
 									let filename = `${__dirname}/poll_results/pollresult_${message.id}`; //initalize filename
 									let pollMsg = await message.guild.channels.array()[targetChan].send(edit) //send copy of poll message to targetChan
 									.then(pinner => pinner.pin()) //pins poll to channel
@@ -642,11 +776,137 @@ client.on("message", async message => {
 	 shouldnt need to be any paramters passed in as it should
 	 already have access to them.
 	*/
-	let execute = commandLUT[command] || async function(){}
+	let log = true;
+	let execute = commandLUT[command] || async function(){log=false}
 	execute();
+	if(log) console.log("processing " + command + " command");
 });
 
 
+function cleanReply(message, input, duration)
+{
+	return new Promise(async (resolve,reject) =>
+	{
+		if(!(message instanceof Discord.Message)) throw new TypeError(`message is not Discord Message`);
+		if(typeof input === "undefined") input = "an unknown error occured";
+		if(typeof duration === "undefined") duration = "5s";
+		const errReply = await message.reply(input);
+		if(duration == 0) resolve();
+		await delay(duration);
+		await errReply.delete();
+		await message.delete();
+		resolve();
+	});
+}
+
+/*
+
+ parse time inputs with flexible syntax. accepts any mix of years, weeks, days, hours, minutes, seconds, milliseconds.
+ does not accept months because how many days is a month anyways? why do you need that?
+ 
+ 1h15m30s200ms
+ 1h
+ 15m
+ 30s
+ 200ms
+ 1h30s
+ 15m30s
+ 
+*/
+function parseTime(timeToParse)
+{
+	let timeValue;
+	if(isNaN(timeToParse))
+	{
+		const timeString = timeToParse;
+		if(!/[ymwdhms]|(ms)/.test(timeString))
+		{
+			timeValue = timeToParse;
+		} else {
+			let match = null;
+			const yearReg = /(\d+)y/gi;
+			const weekReg = /(\d+)w/gi;
+			const dayReg = /(\d+)d/gi;
+			const hourReg = /(\d+)h/gi;
+			const minReg = /(\d+)m(?!s)/gi;
+			const secReg = /(\d+)s/gi;
+			const msReg = /(\d+)ms/gi;
+			let years = 0;
+			let weeks = 0;
+			let days = 0;
+			let hours = 0;
+			let minutes = 0;
+			let seconds = 0;
+			let milliseconds = 0;
+			match = yearReg.exec(timeString);
+			if(match !== null)
+			{
+				years = +match[1];
+			}
+			match = null;
+			match = weekReg.exec(timeString);
+			if(match !== null)
+			{
+				weeks = +match[1];
+			}
+			match = null;
+			match = dayReg.exec(timeString);
+			if(match !== null)
+			{
+				days = +match[1];
+			}
+			match = null;
+			match = hourReg.exec(timeString);
+			if(match !== null)
+			{
+				hours = +match[1];
+			}
+			match = null;
+			match = minReg.exec(timeString);
+			if(match !== null)
+			{
+				minutes = +match[1];
+			}
+			match = null;
+			match = secReg.exec(timeString);
+			if(match !== null)
+			{
+				seconds = +match[1];
+			}
+			match = null;
+			match = msReg.exec(timeString);
+			if(match !== null)
+			{
+				milliseconds = +match[1];
+			}
+			days += 365*years;
+			days += 7*weeks;
+			hours += 24*days;
+			minutes += hours*60;
+			seconds += minutes*60;
+			milliseconds += seconds*1000;
+			timeValue = milliseconds;
+		}
+	}
+	return timeValue;
+}
+
+/*
+
+ create a timed delay promise
+ 
+ */
+function delay(timeToDelay)
+{
+	const timeInMilliseconds = parseTime(timeToDelay);
+	return new Promise(async (resolve,reject)=>
+	{
+		if(isNaN(timeInMilliseconds)) reject(false);
+		setTimeout(async function(){
+			resolve(true);
+		}, timeInMilliseconds);
+	});
+}
 
 //logs client in
 client.login(config.token);
@@ -655,7 +915,7 @@ client.login(config.token);
 
 /*
 
- If you noticed that the entire program is wrapped in main(),
+ If you noticed that the entire bot is wrapped in main(),
  nice! Apprarently, this makes things faster. Like quite a good
  bit faster. Something to do with globabl variables existing
  makes things slow, so by wrapping everything in one big function,
