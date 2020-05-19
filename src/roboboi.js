@@ -368,15 +368,18 @@ client.on("message", async message => {
 		},
 		
 		"info": async function() {
+			const botVersion = (await rp('https://github.com/wakfi/roboboi/releases')).split('/wakfi/roboboi/releases/tag/')[1].split('"')[0];
 			const richEmbed = new Discord.RichEmbed()
 				.setTitle(`Mini Ada`)
 				.setAuthor(`wakfi`, `https://cdn.discordapp.com/attachments/433771480505909248/698752752574005308/wakfi.png`)
 				.setDescription(`This bot was created by <@193160566334947340> for the Gonzaga Computer Science Discord Server`)
-				.setColor(0xFF00FF)
-				.setFooter(`Help commands: ${config.prefix}help, ${config.prefix}commands, ${config.prefix}command, ${config.prefix}?`)
-				.setTimestamp(new Date())
+				.addField(`Prefix`,`Use ${config.prefix} or ${client.user} to invoke commands`)
+				.addField(`Help commands`,`${config.prefix}help, ${config.prefix}commands, ${config.prefix}command, ${config.prefix}?`)
 				.addField(`Library`,`Created in JavaScript using [discord.js](https://discord.js.org/) v11.5.1, a powerful node.js module that allows you to interact with the Discord API very easily`)
 				.addField(`Repository`,`This software is licensed under the MIT license. The GitHub repository for this project can be found at: https://github.com/wakfi/roboboi`)
+				.setFooter(`roboboi ${botVersion}`)
+				.setTimestamp(new Date())
+				.setColor(0xFF00FF);
 			message.author.send(richEmbed)
 			.catch(err => 
 			{
