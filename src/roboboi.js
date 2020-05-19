@@ -426,16 +426,28 @@ client.on("message", async message => {
 		},
 		
 		"submit": async function() {
-			if(args.length == 0) return cleanReply(message, `You cannot submit an empty message`);
+			if(message.channel.type !== 'dm') 
+			{ 
+				cleanReply(message, `try sending me that command as a direct message instead!`, '20s');
+				try {
+					await message.author.send(`Here is your command:`);
+					await message.author.send('```\n' + message.content + '\n```');
+				} catch(e) {
+					await cleanReply(message, `I tried to send your command back to you in your DMs, but something went wrong. Please make sure you have direct messaging open for me!`, `15s`);
+				}
+				return;
+			}
+			if(args.length == 0) return cleanReply(message, `you cannot submit an empty message`);
 			const richEmbed = new Discord.RichEmbed()
 				.setAuthor(message.author.username, message.author.avatarURL)
 				.setDescription(`${args.join(' ')}\n${message.author}`)
 				.setColor(0xFF00FF)
 				.setTimestamp(new Date())
-				.setFooter(`Submitted at`);
-			const newMail = await message.guild.channels.get(namedChannels.modmail).send(richEmbed)
+				.setFooter(`Submitted`);
+			const newMail = await client.guilds.get(server).channels.get(namedChannels.modmail).send(richEmbed)
 			.catch(err => {return cleanReply(message, `An error has occured. Your message could not be submitted. Please try again later`, `15s`)});
 			await newMail.react(`🗃`);
+			cleanReply(message, `${message.author}, thank you for using Mod Mail! Your submission has been successfully received. A member of the moderation team will review your submission as soon as possible`, '20s');
 		},
 		
 		"hugemoji": async function() {
