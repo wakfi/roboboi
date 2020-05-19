@@ -1,6 +1,5 @@
 function main()
 {
-	console.log("CHANGES NOT TESTED"); // <--------
 const Discord = require('discord.js');
 var rp = require('request-promise');
 const emojiUnicode = require('emoji-unicode');
@@ -75,8 +74,6 @@ function addTimestampLogs()
 const server = "673769572804853791"; //guild ID
 const config = require('../components/config.json');
 const namedChannels = require('../components/namedChannels.json');
-const channelInit = require('../components/channelInit.json');
-const channelIdArray = channelInit.channelIdArray;
 
 //inputs for the RoleCall objects
 const roleCallConfig = require('../components/roleCallConfig.json');
@@ -102,12 +99,6 @@ var pollChannelIndex;
 //I call this .ready, even though there isn't actually a .ready anywhere
 client.on("ready", async () => {
 	const memberRoleId = '674746958170292224';
-	/*
-	//fetch guilds and channels
-	 myGuilds.push(await fetchGuild('673769572804853791'));
-	 await initializeChannelsFromArray(0,channelIdArray);
-	 pollChannelIndex = await fetchChannel('697049765925355581');
-	 */
 	addTimestampLogs();
 	let firstRoleArr = roleCallConfig.roleInputArray;
 	let secondRoleArr = roleCallConfigContinued.roleInputArray;
@@ -123,7 +114,7 @@ client.on("ready", async () => {
 		roleCall = new RoleCall(client,roleCallConfig);
 		roleCallContinued = new RoleCall(client,roleCallConfigContinued);
 	} catch(err) {
-		await client.guilds.get(server).channels.get(namedChannels.testing).send(`oh no we boned`);
+		await client.guilds.get(server).channels.get(namedChannels.testing).send(`role call went\n> yikes`);
 		throw err;
 	}
 		
@@ -208,53 +199,6 @@ client.on("ready", async () => {
 		});
 });
 
-//[helper function] recursively initalize a large amount of channels
-function initializeChannelsFromArray(guildIndex, channelIdArray)
-{
-	return new Promise(async (resolve,reject) =>
-	{
-		
-		if(channelIdArray.length == 0) 
-		{
-			resolve(`Loaded`);
-		} else {
-			myChannels[guildIndex].push(await fetchChannel(client.guilds.array()[myGuilds[guildIndex]], channelIdArray.shift()));
-			resolve(await initializeChannelsFromArray(guildIndex, channelIdArray));
-		}
-	});
-}
-
-//[helper function] returns the index of a guild (passed by name) in the client.guilds.array()
-function fetchGuild(id)
-{
-	return new Promise((resolve,reject) => {
-		for(let arr = client.guilds.array(), i = 0; i < arr.length; i++)
-		{
-			if(arr[i].id == id)
-			{
-				myChannels.push([]);
-				resolve(i);
-			}
-		}
-		throw `Error: Not a member of guild ${id}`;
-	});
-}
-
-//[helper function] returns the index of a channel (passed by name) in the guild.channels.array() of a passed in guild object
-function fetchChannel(guild,id)
-{
-	return new Promise((resolve,reject) => {
-		for(let arr = guild.channels.array(), i = 0; i < arr.length; i++)
-		{
-			if(arr[i].id == id)
-			{
-				resolve(i);
-			}
-		}
-		throw `Error: Channel ${id} not found in ${guild}`;
-	});
-}
-
 //This event triggers when the bot joins a guild.
 client.on("guildCreate", guild => {
 	console.log(`New guild joined: ${guild.name} (id: ${guild.id}). This guild has ${guild.memberCount} members!`);
@@ -270,6 +214,54 @@ client.on("guildMemberAdd", member => {});    //nothing
 
 //runs when a user leaves the server
 client.on("guildMemberRemove", member => {}); //nothing
+
+//handle reaction add and reaction remove on all messages, including uncached messages
+client.on("raw", packet => 
+{
+	// We don't want this to run on unrelated packets
+    if (!['MESSAGE_REACTION_ADD', 'MESSAGE_REACTION_REMOVE'].includes(packet.t)) return;
+    // Grab the channel to check the message from
+    const channel = client.channels.get(packet.d.channel_id);
+    // There's no need to emit if the message is cached, because the event will fire anyway for that|| wrong yes there is
+    //if (channel.messages.has(packet.d.message_id)) return;
+    // Since we have confirmed the message is not cached, let's fetch it
+    channel.fetchMessage(packet.d.message_id).then(message => {
+		const user = client.users.get(packet.d.user_id);
+		//if user is a bot, stop now. 
+		if(user.bot) return;
+        // Emojis can have identifiers of name:id format, so we have to account for that case as well
+        const emoji = packet.d.emoji.id ? `${packet.d.emoji.name}:${packet.d.emoji.id}` : packet.d.emoji.name;
+        // This gives us the reaction we need to emit the event properly, in top of the message object
+        const reaction = message.reactions.get(emoji);
+        // Adds the currently reacting user to the reaction's users collection.
+        if (reaction) reaction.users.set(packet.d.user_id, user);
+        // Check which type of event it is before emitting
+        if (packet.t === 'MESSAGE_REACTION_ADD') {
+            messageReactionAdd(reaction, user);
+        } else if (packet.t === 'MESSAGE_REACTION_REMOVE') {
+            messageReactionRemove(reaction, user);
+        }
+    });
+});
+
+//handles messageReactionAdd event passed by packet handler
+async function messageReactionAdd(reaction,user)
+{
+	const message = reaction.message;
+	if(message.channel.id == namedChannels.modmail)
+	{
+		if(reaction.emoji.name === `🗃`)
+		{
+			await message.guild.channels.get(namedChannels.mailArchive).send(new Discord.RichEmbed(message.embeds[0]));
+			await message.delete();
+		}
+	}
+}
+
+//do nothing
+//we have this so it can be expanded at later without editing raw packet handler
+async function messageReactionRemove(reaction,user)
+{}
 
 //this event triggers when a message is sent in a channel the bot has access to
 client.on("message", async message => {
@@ -375,26 +367,6 @@ client.on("message", async message => {
 			}
 		},
 		
-		"wakfi": async function() {
-			if(message.author.id == 193160566334947340)
-			{
-				const readable = millisecondsToString(args.join(' '));
-				console.log(readable);
-				message.channel.send(readable);
-			}
-		},
-		
-		"spam": async function() {
-			if(message.author.id == 193160566334947340)
-			{
-				for(let i = 0; i < 10; i++)
-				{
-					message.channel.send(`.${i}`);
-					await delay('1s');
-				}
-			}
-		},
-		
 		"info": async function() {
 			const richEmbed = new Discord.RichEmbed()
 				.setTitle(`Mini Ada`)
@@ -408,7 +380,7 @@ client.on("message", async message => {
 			message.author.send(richEmbed)
 			.catch(err => 
 			{
-				cleanReply(message, `Something went wrong! If you're seeing this, it probably means you have Direct Messages disabled. Please enable DMs from this server in order to use this command!`, `15s`);
+				return cleanReply(message, `Something went wrong! If you're seeing this, it probably means you have Direct Messages disabled. Please enable DMs from this server in order to use this command!`, `15s`);
 			});
 		},
 		
@@ -427,6 +399,7 @@ client.on("message", async message => {
 				.setTimestamp(new Date())
 				.addField(`${config.prefix}info`,`Information about the development of this bot`)
 				.addField(`${config.prefix}mstime`,`Convert a time from milliseconds into a readable time, or a readable time into milliseconds. Readable times are in the format "1d1h1m1s1ms"; any zero values will be omitted from the returned result`)
+				.addField(`${config.prefix}submit`,`Send a message something to the Mod Mail`)
 				.addField(`${config.prefix}ping`,`Provides the current client latency`)
 				.addField(`${config.prefix}uptime`,`States how long the bot has been online and connected to Discord continuously, since the most recent interuption`)
 				.addField(`Role Call`,`Select roles that indicate your Year, Major, and what courses you are in and have taken, by pressing the reaction buttons on the messages in <#674870421237268483>. Users are limited in the channels they can view until they have chosen at least one role`);
@@ -439,17 +412,30 @@ client.on("message", async message => {
 				.addField(`${config.prefix}kill`,`Emergency Shutoff. Should restart on its own. Use this if the bot starts spamming rapidly without reason, for example`)
 				.addField(`${config.prefix}restart`,`Non-emergency shutoff`)
 				.addField(`${config.prefix}purge <arguments>`,`Will delete the most recent 2-99 messages in the channel that you execute this command in. Good for cleaning up spam. All messages to delete must be less than 14 days old due to the Discord API. Argument options:\n`
-						+ `${config.prefix}purge <2-99> - delete the most recent X messages from this channel. You will need to count`
-						+ `${config.prefix}purge count | <2-99> - identical to the shorthand syntax, using an explicit command form`
-						+ `${config.prefix}purge from | <messageID> - delete all messages between the most recent message and the provided messageID. Command will fail if the provided message is further than 99 messages from the most recent message`
-						+ `${config.prefix}purge between | <oldestID> | <newestID> - all messages between oldestID and newestID, **inclusive**. Does not need to be within 99 messages of the most recent message`)
+						+ `**${config.prefix}purge <2-99>** - delete the most recent X messages from this channel. You will need to count\n`
+						+ `**${config.prefix}purge count | <2-99>** - identical to the previous syntax, but using an explicit command form\n`
+						+ `**${config.prefix}purge from | <messageID>** - delete all messages between the most recent message and the provided messageID. Command will fail if the provided message is further than 99 messages from the most recent message\n`
+						+ `**${config.prefix}purge between | <oldestID> | <newestID>** - delete all messages between oldestID and newestID, ***inclusive***. Does not need to be within 99 messages of the most recent message\n`)
 				.addField(`${config.prefix}poll <question>`,`Follow the prompts after that. I can provide a general blueprint of the syntax for all of the prompts if wanted. Note: don't make more than one poll per user without starting it, the syntax hasn't been prepared for that yet`);
 			}
 			message.author.send(richEmbed)
 			.catch(err => 
 			{
-				cleanReply(message, `Something went wrong! If you're seeing this, it probably means you have Direct Messages disabled. Please enable DMs from this server in order to use this command!`, `15s`);
+				return cleanReply(message, `Something went wrong! If you're seeing this, it probably means you have Direct Messages disabled. Please enable DMs from this server in order to use this command!`, `15s`);
 			});
+		},
+		
+		"submit": async function() {
+			if(args.length == 0) return cleanReply(message, `You cannot submit an empty message`);
+			const richEmbed = new Discord.RichEmbed()
+				.setAuthor(message.author.username, message.author.avatarURL)
+				.setDescription(`${args.join(' ')}\n${message.author}`)
+				.setColor(0xFF00FF)
+				.setTimestamp(new Date())
+				.setFooter(`Submitted at`);
+			const newMail = await message.guild.channels.get(namedChannels.modmail).send(richEmbed)
+			.catch(err => {return cleanReply(message, `An error has occured. Your message could not be submitted. Please try again later`, `15s`)});
+			await newMail.react(`🗃`);
 		},
 		
 		"hugemoji": async function() {
@@ -523,8 +509,7 @@ client.on("message", async message => {
 			const minimumPermissions = 0x2000; //permission bitfield for MANAGE_MESSAGES
 			if(!message.member.hasPermission(minimumPermissions,false,true,true))
 			{
-				await cleanReply(message, `Sorry, you don't have permissions to use this!`);
-				return;
+				return await cleanReply(message, `Sorry, you don't have permissions to use this!`);
 			}
 			// This command removes all messages from all users in the channel, up to 100
 			const lastAccessibleMessageID = (await message.channel.fetchMessages({limit: 1, before: message.channel.lastMessageID})).first().id;
@@ -550,8 +535,7 @@ client.on("message", async message => {
 					const startIDNum = +startID;
 					if(isNaN(startIDNum))
 					{
-						await cleanReply(message, `Must provide a valid message ID`);
-						return;
+						return await cleanReply(message, `Must provide a valid message ID`);
 					}
 					const afterResult = await message.channel.fetchMessages({limit: 1, before: startID});
 					afterID = (afterResult.size == 1) ? afterResult.first().id : startID;
@@ -571,8 +555,7 @@ client.on("message", async message => {
 						const endIDNum = +endID;
 						if(isNaN(startIDNum) || isNaN(endIDNum))
 						{
-							await cleanReply(message, `Please provide valid message IDs`);
-							return;
+							return await cleanReply(message, `Please provide valid message IDs`);
 						}
 						const afterResult = await message.channel.fetchMessages({limit: 1, before: startID});
 						const beforeResult = await message.channel.fetchMessages({limit: 1, after: endID});
@@ -593,22 +576,19 @@ client.on("message", async message => {
 					
 					fetchOptions = {limit: deleteCount};
 				} else {
-					await cleanReply(message, `Unknown purge command: ${keyword}`);
-					return;
+					return await cleanReply(message, `Unknown purge command: ${keyword}`);
 				}
 			}
 			
 			if(isNaN(deleteCount))
 			{
-				await cleanReply(message, `Number of messages to delete must be a number`);
-				return;
+				return await cleanReply(message, `Number of messages to delete must be a number`);
 			}
 			
 			// combined conditions <3 user must input between 2-99
 			if(!deleteCount || deleteCount < 3 || deleteCount > 100)
 			{
-				await cleanReply(message, `Please provide a number between 2 and 99 (inclusive) for the number of messages to delete`);
-				return;
+				return await cleanReply(message, `Please provide a number between 2 and 99 (inclusive) for the number of messages to delete`);
 			}
 			
 			// So we get our messages, and delete them. Simple enough, right?
@@ -618,8 +598,7 @@ client.on("message", async message => {
 			{
 				const errText = keyword === "from" ? `Message ID must be within 99 messages of the most recent message` :
 													 `The older message provided must be within 99 messages of the newer message`;
-				await cleanReply(message, errText);
-				return;
+				return await cleanReply(message, errText);
 			}
 			
 			message.channel.bulkDelete(fetched)
@@ -846,7 +825,7 @@ function cleanReply(message, input, duration)
 	{
 		if(!(message instanceof Discord.Message)) throw new TypeError(`message is not Discord Message`);
 		if(typeof input === "undefined") input = "an unknown error occured";
-		if(typeof duration === "undefined") duration = "5s";
+		if(typeof duration === "undefined") duration = "8s";
 		const errReply = await message.reply(input);
 		if(duration == 0) resolve();
 		await delay(duration);
