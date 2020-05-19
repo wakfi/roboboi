@@ -398,8 +398,8 @@ client.on("message", async message => {
 				.setFooter(`${config.prefix}commands, ${config.prefix}command, ${config.prefix}?`)
 				.setTimestamp(new Date())
 				.addField(`${config.prefix}info`,`Information about the development of this bot`)
-				.addField(`${config.prefix}mstime`,`Convert a time from milliseconds into a readable time, or a readable time into milliseconds. Readable times are in the format "1d1h1m1s1ms"; any zero values will be omitted from the returned result`)
-				.addField(`${config.prefix}submit`,`Send a message something to the Mod Mail`)
+				.addField(`${config.prefix}mstime <number or duration>`,`Convert a time from milliseconds into a readable time, or a readable time into milliseconds. Readable times are in the format "1d1h1m1s1ms"; any zero values will be omitted from the returned result`)
+				.addField(`${config.prefix}submit <text of message>`,`Send a message something to the Mod Mail. Currently only the message body will be sent, not any attachments. If you want to send an attachment, send a direct link to it instead`)
 				.addField(`${config.prefix}ping`,`Provides the current client latency`)
 				.addField(`${config.prefix}uptime`,`States how long the bot has been online and connected to Discord continuously, since the most recent interuption`)
 				.addField(`Role Call`,`Select roles that indicate your Year, Major, and what courses you are in and have taken, by pressing the reaction buttons on the messages in <#674870421237268483>. Users are limited in the channels they can view until they have chosen at least one role`);
