@@ -108,7 +108,7 @@ client.on("ready", async () => {
 	for(let i = 0; i < secondRoleArr.length; i++)	{ courseRoles.set(secondRoleArr[i].role, client.guilds.get(server).roles.get(secondRoleArr[i].role)) }
 	
 	console.log(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} guilds.`);
-	client.user.setActivity(`Beep Boop`);
+	client.user.setActivity(`${config.prefix}help for commands`);
 	
 	try	{
 		roleCall = new RoleCall(client,roleCallConfig);
