@@ -830,7 +830,14 @@ function cleanReply(message, input, duration)
 		if(duration == 0) resolve();
 		await delay(duration);
 		await errReply.delete();
-		await message.delete();
+		if(message.channel.type !== 'dm')
+		{
+			try {
+				await message.delete();
+			} catch(e) {
+				console.error(`Error with cleanup after cleanReply:\n${e}`);
+			}
+		}
 		resolve();
 	});
 }
