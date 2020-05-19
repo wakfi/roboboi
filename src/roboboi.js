@@ -609,10 +609,8 @@ client.on("message", async message => {
 		},
 		
 		"poll": async function() {
-			//let duration = 86400000; //default duration is 24 hours
-			let duration = 95040000; //default duration is 24 hours
-			//let targetChan = pollChannelIndex; //defualt target channel is the general chat channel
-			let targetChan = namedChannels.testing; //defualt target channel is the general chat channel
+			let duration = 86400000; //default duration is 24 hours
+			let targetChan = namedChannels.polls; //defualt target channel is the general chat channel
 			if(message.member.highestRole.calculatedPosition <= message.guild.members.get(client.user.id).highestRole.calculatedPosition)
 				return message.author.send(`Sorry, you don't have permissions to use this!`); //verify permission; must be Tutor, TA, Mod, or Admin
 			
@@ -665,7 +663,6 @@ client.on("message", async message => {
 							if(conf.array()[0].content.slice(config.prefix.length).trim() === "y")
 							{//on yes
 								message.reply(`Poll creation complete. Poll will be saved for 24 hours. Type ${config.prefix}pollstart to begin the poll. You can type ${config.prefix}polltime to change the duration of the poll; the default duration is 24 hours`);
-								//message.reply(`How long (minutes) should the poll remain open? (${config.prefix}time #) (default = 24 hours)`); //default time 2 hours, can be any time >= 1 minute. i suppose 0 wouldn't throw any errors but that would be pretty useless
 								const polltimeRegex = new RegExp(`^${config.prefix}polltime`);
 								const timeCollector = message.channel.createMessageCollector(mno => mno.author === message.author && polltimeRegex.test(mno.content), {time: duration, errors: ['time'] });
 								timeCollector.on('collect', msg => 
@@ -720,7 +717,6 @@ client.on("message", async message => {
 									const collector = new PollCollector(pollMsg, filter, {time: duration}); //initialize reaction collector with filter and specified duration
 									const endCollector = message.channel.guild.channels.get(targetChan).createMessageCollector(m => m.author === message.author && (m.content === `${config.prefix}endpoll` || m.content === `${config.prefix}cancelpoll`), {time: duration}); //initialize message collector with filter and specified duration
 									recordFile({'question' : question, 'authorName' : message.author.username, 'authorId' : message.author.id, 'pollMsg' : pollMsg.id, 'responseCount' : responseCount, 'cleanResults' : cleanResults, 'answers' : answers, 'totalVotes' : collector.collected.size, 'voters' : collector.collected.users, 'complete' : false}, `${filename}.json`)();
-									//console.log(`started poll timeout = ${duration/60000}`);
 									console.log(`started poll timeout = ${millisecondsToString(duration)}`);
 									
 									//event handler for message collector, allows realtime updating of results and output file (and poll stop). Currently not supporting updating of results
