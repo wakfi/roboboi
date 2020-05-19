@@ -1,6 +1,6 @@
 {
   "name": "roboboi",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "bot for GU cpsc discord",
   "main": "src/roboboi.js",
   "scripts": {
