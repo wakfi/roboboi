@@ -12,7 +12,7 @@ const recordFile = require('../components/recordFile.js');
 const clientOps = require('../components/clientOps.json');
 const isTimeFormat = require('../components/isTimeFormat.js');
 
-const emojiMap = require('../components/emojilib.json');
+
 /* license for emojilib.json
 The MIT License (MIT)
 
@@ -36,6 +36,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+const emojiMap = require('../components/emojilib.json');
 
 const client = new Discord.Client(clientOps);
 
@@ -324,14 +325,6 @@ client.on("message", async message => {
 			}
 		},
 		
-		"wakfi": async function() {
-			const input = args.join('');
-			const pattern = isTimeFormat(input);
-			return message.channel.send(pattern && pattern.test(input));
-			//message.channel.send(/^(-?(?:\d*|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+)(?=d))/gi.test(input));
-			//message.channel.send(/(?=[\dabcdef])[\dywdhms]/i.test(input) && !isHexadecimal(input));
-		},
-		
 		// Calculates ping between sending a message and editing it, giving a nice round-trip latency.
 		// The second ping is an average latency between the bot and the websocket server (one-way, not round-trip)
 		"ping": async function() {
@@ -361,7 +354,7 @@ client.on("message", async message => {
 		
 		"mstime": async function() {
 			if(args.length == 0) return message.channel.send(`Missing argument for conversion`);
-			const toConvert = args.join(' ');
+			const toConvert = args.join('').trim();
 			if(isNaN(toConvert))
 			{
 				try {
@@ -886,14 +879,7 @@ function authorReply(message, input)
 	});
 }
 
-//is value hexadecimal
-function isNumerical(value)
-{
-	return /^(0x[\dabcdef]+|\d+)$/gi.test(value);
-}
-
 /*
-
  parse time inputs with flexible syntax. accepts any mix of years, weeks, days, hours, minutes, seconds, milliseconds.
  does not accept months because how many days is a month anyways? why do you need that?
  
@@ -904,7 +890,6 @@ function isNumerical(value)
  200ms
  1h 30s
  15m 30s
- 
 */
 function parseTime(timeToParse)
 {
