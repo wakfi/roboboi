@@ -10,6 +10,7 @@ const RoleCall = require('discord-role-call');
 const PollCollector = require('../components/PollCollector.js');
 const recordFile = require('../components/recordFile.js');
 const clientOps = require('../components/clientOps.json');
+const isTimeFormat = require('../components/isTimeFormat.js');
 
 const emojiMap = require('../components/emojilib.json');
 /* license for emojilib.json
@@ -293,7 +294,7 @@ client.on("message", async message => {
 	const args = message.content.slice(config.prefix.length).trim().split(/ +/g);
 	if(args.length < 2 && message.isMentioned(client.user))
 	{
-		cleanReply(message, `type ${config.prefix}help to see a list commands`, `10s`);
+		cleanReply(message, `type ${config.prefix}help to see a list commands`);
 		return;
 	}
 	const command = message.isMentioned(client.user) ? args[1] : args[0];
@@ -321,6 +322,14 @@ client.on("message", async message => {
 			{
 				process.exit(0);
 			}
+		},
+		
+		"wakfi": async function() {
+			const input = args.join('');
+			const pattern = isTimeFormat(input);
+			return message.channel.send(pattern && pattern.test(input));
+			//message.channel.send(/^(-?(?:\d*|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+)(?=d))/gi.test(input));
+			//message.channel.send(/(?=[\dabcdef])[\dywdhms]/i.test(input) && !isHexadecimal(input));
 		},
 		
 		// Calculates ping between sending a message and editing it, giving a nice round-trip latency.
@@ -359,7 +368,7 @@ client.on("message", async message => {
 					const millisecondConversion = parseTime(toConvert);
 					message.channel.send(millisecondConversion);
 				} catch(e) {
-					message.channel.send(`Conversion failed: ${e}`);
+					selfDeleteReply(message, `Conversion failed: ${e.message}`);
 				}
 			} else {
 				const readable = millisecondsToString(toConvert);
@@ -380,11 +389,7 @@ client.on("message", async message => {
 				.setFooter(`roboboi ${botVersion}`)
 				.setTimestamp(new Date())
 				.setColor(0xFF00FF);
-			message.author.send(richEmbed)
-			.catch(err => 
-			{
-				return cleanReply(message, `Something went wrong! If you're seeing this, it probably means you have Direct Messages disabled. Please enable DMs from this server in order to use this command!`, `15s`);
-			});
+			authorReply(message, richEmbed).catch(e=>{});
 		},
 		
 		//this is a way I've found of aliasing commands when using a LUT
@@ -401,7 +406,7 @@ client.on("message", async message => {
 				.setFooter(`${config.prefix}commands, ${config.prefix}command, ${config.prefix}?`)
 				.setTimestamp(new Date())
 				.addField(`${config.prefix}info`,`Information about the development of this bot`)
-				.addField(`${config.prefix}mstime <number or duration>`,`Convert a time from milliseconds into a readable time, or a readable time into milliseconds. Readable times are in the format "1d1h1m1s1ms"; any zero values will be omitted from the returned result`)
+				.addField(`${config.prefix}mstime <number or duration>`,`Convert a time from milliseconds into a readable time, or a readable time into milliseconds. Readable times are in the format \`1d 1h 1m 1s 1ms\`; any zero values will be omitted from the returned result`)
 				.addField(`${config.prefix}submit <text of message>`,`Send a message something to the Mod Mail. Currently only the message body will be sent, not any attachments. If you want to send an attachment, send a direct link to it instead`)
 				.addField(`${config.prefix}ping`,`Provides the current client latency`)
 				.addField(`${config.prefix}uptime`,`States how long the bot has been online and connected to Discord continuously, since the most recent interuption`)
@@ -421,26 +426,20 @@ client.on("message", async message => {
 						+ `**${config.prefix}purge between | <oldestID> | <newestID>** - delete all messages between oldestID and newestID, ***inclusive***. Does not need to be within 99 messages of the most recent message\n`)
 				.addField(`${config.prefix}poll <question>`,`Follow the prompts after that. I can provide a general blueprint of the syntax for all of the prompts if wanted. Note: don't make more than one poll per user without starting it, the syntax hasn't been prepared for that yet`);
 			}
-			message.author.send(richEmbed)
-			.catch(err => 
-			{
-				return cleanReply(message, `Something went wrong! If you're seeing this, it probably means you have Direct Messages disabled. Please enable DMs from this server in order to use this command!`, `15s`);
-			});
+			authorReply(message, richEmbed).catch(e=>{});
 		},
 		
 		"submit": async function() {
 			if(message.channel.type !== 'dm') 
 			{ 
-				cleanReply(message, `try sending me that command as a direct message instead!`, '20s');
+				selfDeleteReply(message, `try sending me that command as a direct message instead!`, '20s');
 				try {
-					await message.author.send(`Here is your command:`);
-					await message.author.send('```\n' + message.content + '\n```');
-				} catch(e) {
-					await cleanReply(message, `I tried to send your command back to you in your DMs, but something went wrong. Please make sure you have direct messaging open for me!`, `15s`);
+					await authorReply(message, `Here is your command, you can send this back to me or edit it first:` + '```\n' + message.content + '\n```');
+				} catch(ignore) {
 				}
 				return;
 			}
-			if(args.length == 0) return cleanReply(message, `you cannot submit an empty message`);
+			if(args.length == 0) return selfDeleteReply(message, `you cannot submit an empty message`);
 			const richEmbed = new Discord.RichEmbed()
 				.setAuthor(message.author.username, message.author.avatarURL)
 				.setDescription(`${args.join(' ')}\n${message.author}`)
@@ -448,9 +447,9 @@ client.on("message", async message => {
 				.setTimestamp(new Date())
 				.setFooter(`Submitted`);
 			const newMail = await client.guilds.get(server).channels.get(namedChannels.modmail).send(richEmbed)
-			.catch(err => {return cleanReply(message, `An error has occured. Your message could not be submitted. Please try again later`, `15s`)});
+			.catch(err => {return selfDeleteReply(message, `An error has occured. Your message could not be submitted. Please try again later`, `25s`)});
 			await newMail.react(`🗃`);
-			cleanReply(message, `${message.author}, thank you for using Mod Mail! Your submission has been successfully received. A member of the moderation team will review your submission as soon as possible`, '20s');
+			authorReply(message, `${message.author}, thank you for using Mod Mail! Your submission has been successfully received. A member of the moderation team will review your submission as soon as possible`).catch(e=>{});
 		},
 		
 		"hugemoji": async function() {
@@ -521,6 +520,7 @@ client.on("message", async message => {
 		},
 		
 		"purge": async function() {
+			if(message.channel.type === 'dm') return selfDeleteReply(message, 'This command can only be used in a server!', '15s');
 			const minimumPermissions = 0x2000; //permission bitfield for MANAGE_MESSAGES
 			if(!message.member.hasPermission(minimumPermissions,false,true,true))
 			{
@@ -619,7 +619,7 @@ client.on("message", async message => {
 			message.channel.bulkDelete(fetched)
 			.catch(async error => 
 			{
-				await cleanReply(message, `Couldn't delete messages because of: ${error}`);
+				await cleanReply(message, `Couldn't delete messages because of: ${error}`, '16s');
 			});
 		},
 		
@@ -836,7 +836,7 @@ function cleanReply(message, input, duration)
 	{
 		if(!(message instanceof Discord.Message)) throw new TypeError(`message is not Discord Message`);
 		if(typeof input === "undefined") input = "an unknown error occured";
-		if(typeof duration === "undefined") duration = "8s";
+		if(typeof duration === "undefined") duration = "12s";
 		const errReply = await message.reply(input);
 		if(duration == 0) resolve();
 		await delay(duration);
@@ -853,38 +853,77 @@ function cleanReply(message, input, duration)
 	});
 }
 
+//like a cleanReply but only cleans self up
+function selfDeleteReply(message, input, duration)
+{
+	return new Promise(async (resolve,reject) =>
+	{
+		if(!(message instanceof Discord.Message)) throw new TypeError(`message is not Discord Message`);
+		if(typeof input === "undefined") input = "an unknown error occured";
+		if(typeof duration === "undefined") duration = "12s";
+		const errReply = await message.reply(input);
+		if(duration == 0) resolve();
+		await delay(duration);
+		await errReply.delete();
+		resolve();
+	});
+}
+
+function authorReply(message, input)
+{
+	return new Promise(async (resolve,reject) =>
+	{
+		if(typeof message === "undefined") throw new TypeError(`message is undefined`);
+		if(!(message instanceof Discord.Message)) throw new TypeError(`message is not Discord Message`);
+		if(typeof input === "undefined") input = "an unknown error occured";
+		try {
+			await message.author.send(input);
+		} catch(e) {
+			selfDeleteReply(`It looks like I can't DM you. Do you have DMs disabled?`);
+			reject(false);
+		}
+		resolve();
+	});
+}
+
+//is value hexadecimal
+function isNumerical(value)
+{
+	return /^(0x[\dabcdef]+|\d+)$/gi.test(value);
+}
+
 /*
 
  parse time inputs with flexible syntax. accepts any mix of years, weeks, days, hours, minutes, seconds, milliseconds.
  does not accept months because how many days is a month anyways? why do you need that?
  
- 1h15m30s200ms
+ 1h 15m 30s 200ms
  1h
  15m
  30s
  200ms
- 1h30s
- 15m30s
+ 1h 30s
+ 15m 30s
  
 */
 function parseTime(timeToParse)
 {
-	let timeValue;
+	let timeValue = timeToParse;
 	if(isNaN(timeToParse))
 	{
 		const timeString = timeToParse;
-		if(!/[ymwdhms]|(ms)/.test(timeString))
+		if(!isTimeFormat(timeString))
 		{
-			timeValue = timeToParse;
+			throw new SyntaxError('must be in the format 1d 2h 3m 4s 5ms (any segment is optional, such as `1h 1m` is valid)');
 		} else {
 			let match = null;
-			const yearReg = /(\d+)y/gi;
-			const weekReg = /(\d+)w/gi;
-			const dayReg = /(\d+)d/gi;
-			const hourReg = /(\d+)h/gi;
-			const minReg = /(\d+)m(?!s)/gi;
-			const secReg = /(\d+)s/gi;
-			const msReg = /(\d+)ms/gi;
+			const yearReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))y/gi;
+			const weekReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))w/gi;
+			const dayReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))d/gi;
+			const hourReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))h/gi;
+			const minReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))m(?!s)/gi;
+			const secReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))s/gi;
+			const msReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))ms/gi;
 			let years = 0;
 			let weeks = 0;
 			let days = 0;
@@ -895,43 +934,43 @@ function parseTime(timeToParse)
 			match = yearReg.exec(timeString);
 			if(match !== null)
 			{
-				years = +match[1];
+				years = Number(match[1]);
 			}
 			match = null;
 			match = weekReg.exec(timeString);
 			if(match !== null)
 			{
-				weeks = +match[1];
+				weeks = Number(match[1]);
 			}
 			match = null;
 			match = dayReg.exec(timeString);
 			if(match !== null)
 			{
-				days = +match[1];
+				days = Number(match[1]);
 			}
 			match = null;
 			match = hourReg.exec(timeString);
 			if(match !== null)
 			{
-				hours = +match[1];
+				hours = Number(match[1]);
 			}
 			match = null;
 			match = minReg.exec(timeString);
 			if(match !== null)
 			{
-				minutes = +match[1];
+				minutes = Number(match[1]);
 			}
 			match = null;
 			match = secReg.exec(timeString);
 			if(match !== null)
 			{
-				seconds = +match[1];
+				seconds = Number(match[1]);
 			}
 			match = null;
 			match = msReg.exec(timeString);
 			if(match !== null)
 			{
-				milliseconds = +match[1];
+				milliseconds = Number(match[1]);
 			}
 			days += 365*years;
 			days += 7*weeks;
