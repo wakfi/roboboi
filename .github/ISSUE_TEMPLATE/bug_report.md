@@ -1,18 +1,10 @@
 ---
-name: Bug report
-about: Create a report to help improve the bot
-title: ''
-labels: ''
-assignees: ''
-
----
-
----
-name:  Bug Report
+name: 🐞 Bug Report
 about: Found something that's not working correctly?
 title: ''
 labels: 'bug'
 assignees: ''
+
 ---
 
 ## Short Description
