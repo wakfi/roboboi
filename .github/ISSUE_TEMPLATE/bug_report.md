@@ -2,7 +2,7 @@
 name: 🐞 Bug Report
 about: Found something that's not working correctly?
 title: ''
-labels: 'bug'
+labels: 'bug report'
 assignees: ''
 
 ---
