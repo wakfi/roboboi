@@ -23,5 +23,5 @@ Step 4:
 
 ## Actual Result (what is the *current* behavior?)
 
-## Current Bot Version (you can run the `info` command and look at the footer for this)
+## Current Bot Version (run the `info` command and look at the footer)
 
