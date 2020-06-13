@@ -237,6 +237,7 @@ client.on("raw", packet =>
         const reaction = message.reactions.get(emoji);
         // Adds the currently reacting user to the reaction's users collection.
         if (reaction) reaction.users.set(packet.d.user_id, user);
+		else return console.error(`Could not retrieve reaction for emoji ${emoji}`);
         // Check which type of event it is before emitting
         if (packet.t === 'MESSAGE_REACTION_ADD') {
             messageReactionAdd(reaction, user);
@@ -675,7 +676,7 @@ client.on("message", async message => {
 								const timeCollector = message.channel.createMessageCollector(mno => mno.author === message.author && polltimeRegex.test(mno.content), {time: duration, errors: ['time'] });
 								timeCollector.on('collect', msg => 
 								{
-									const life = dur.array()[0].content.slice(config.prefix.length).trim().split(/ +/g);
+									const life = msg.content.trim().split(/ +/g);
 									life.shift(); //remove command text
 									const timeInput = life.join('');
 									const parsedTime = parseTime(timeInput); //create milliseconds int from time input
@@ -694,6 +695,7 @@ client.on("message", async message => {
 									let pollMsg = await message.guild.channels.get(targetChan).send(edit).catch(e => {console.error(e)}); //send copy of poll message to targetChan
 									await pollMsg.pin();
 									pinnedSystemMsg = message.channel.lastMessage;
+									if(pinnedSystemMsg.type === 'PINS_ADD') pinnedSystemMsg.delete();
 									let cleanResults = [0];
 									try{
 										for(let myI = 0; myI < buttons.length; myI++) 
@@ -757,7 +759,7 @@ client.on("message", async message => {
 										{
 											console.log(`Poll cancelled`);
 											pollMsg.delete();
-											pinnedSystemMsg.delete();
+											//pinnedSystemMsg.delete();
 										} else {
 											console.log(`Poll complete`);
 											let toSendTitle = `__Results for poll: ${question}${!question.includes('?')?'?':''}__`; //begin constructing result version of poll
@@ -782,7 +784,7 @@ client.on("message", async message => {
 											message.author.send(endBed); //DM a copy of results to the author
 											pollMsg.edit("", endBed); //swap the results in for the poll (also removes the vote instructions from the bottom)
 											pollMsg.unpin(); //unpins, as it is no longer an active poll
-											if(pinnedSystemMsg.author.id == client.user.id) pinnedSystemMsg.delete();
+											//if(pinnedSystemMsg.author.id == client.user.id) pinnedSystemMsg.delete();
 											//records final results in file, including completion status. currently not used
 											recordFile({'question' : question, 'authorName' : message.author.username, 'authorId' : message.author.id, 'pollMsg' : pollMsg.id, 'responseCount' : responseCount, 'cleanResults' : cleanResults, 'toSend' : toSend, 'totalVotes' : collected.size, 'voters' : collected.users, 'complete' : true}, `${filename}.json`)();
 										}
