@@ -497,22 +497,27 @@ client.on("message", async message => {
 					//emoji is a unicode emoji 
 					//the order here is: get svg image from remote (save local), convert to png (save local), send png, delete local svg and png
 					const emojiName = emojiMap[messageElement] ? emojiMap[messageElement][0] : emojiInUnicode;
-					const picFolder = `file_dump`;
+					const picPath = path.normalize(`${process.cwd()}/../file_dump/${emojiInUnicode}`);
 					//data for vector image of emoji
 					const emojiSvg = await rp(githubResponseB.split('data-image  = "')[1].split('"')[0]);
-					await fs.outputFile(path.normalize(`${process.cwd()}/../${picFolder}/${emojiInUnicode}.svg`),emojiSvg);
-					//convert from svg to png
-					await svgToPng.convert(path.join(__dirname,picFolder,`${emojiInUnicode}.svg`),path.join(__dirname,picFolder),{defaultWidth:722,defaultHeight:722},{type:"image/png"});
-					await message.channel.send({files: 
-						[{attachment: path.normalize(`${process.cwd()}/../${picFolder}/${emojiInUnicode}.png`),
-						name: `${emojiName}.png`}]
-					}).catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err}`)});
-					//cleanup created files
-					await fs.remove(`${process.cwd()}/../${picFolder}/${emojiInUnicode}.svg`)
-					.catch(err => {
-						console.error(err)
-					});
-					await fs.remove(`${process.cwd()}/../${picFolder}/${emojiInUnicode}.png`)
+					await fs.outputFile(`${picPath}.svg`,emojiSvg);
+					try {
+						//convert from svg to png
+						await svgToPng.convert(`${picPath}.svg`,path.normalize(`${process.cwd()}/../file_dump`),{defaultWidth:722,defaultHeight:722},{type:"image/png"});
+						await message.channel.send({files: 
+							[{attachment: `${picPath}.png`,
+							name: `${emojiName}.png`}]
+						}).catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err}`)});
+						//cleanup created png
+						await fs.remove(`${picPath}.png`)
+						.catch(err => {
+							console.error(err)
+						});
+					} catch(e) {
+						console.error(e.stack);
+					}
+					//delete svg regardless of png success
+					await fs.remove(`${picPath}.svg`)
 					.catch(err => {
 						console.error(err)
 					});
