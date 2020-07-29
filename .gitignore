@@ -1,5 +1,5 @@
 #to ignore
-components/config.json
+src/util/components/config.json
 poll_results/*.json
 src/roboghost.js
 

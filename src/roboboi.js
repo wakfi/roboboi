@@ -7,11 +7,18 @@ var svgToPng = require('svg-to-png');
 var path = require('path');
 var fs = require('fs-extra');
 const RoleCall = require('discord-role-call');
-const PollCollector = require('../components/PollCollector.js');
-const recordFile = require('../components/recordFile.js');
-const clientOps = require('../components/clientOps.json');
-const isTimeFormat = require('../components/isTimeFormat.js');
 
+const PollCollector = require(`${process.cwd()}/util/components/PollCollector.js`);
+const recordFile = require(`${process.cwd()}/util/components/recordFile.js`);
+const clientOps = require(`${process.cwd()}/util/components/clientOps.json`);
+
+const isTimeFormat = require(`${process.cwd()}/util/time/isTimeFormat.js`);
+const millisecondsToString = require(`${process.cwd()}/util/time/millisecondsToString.js`);
+const parseTime = require(`${process.cwd()}/util/time/parseTime.js`);
+const delay = require(`${process.cwd()}/util/time/delay.js`);
+const authorReply = require(`${process.cwd()}/util/reply/authorReply.js`);
+const selfDeleteReply = require(`${process.cwd()}/util/reply/selfDeleteReply.js`);
+const cleanReply = require(`${process.cwd()}/util/reply/cleanReply.js`);
 
 /* license for emojilib.json
 The MIT License (MIT)
@@ -36,7 +43,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-const emojiMap = require('../components/emojilib.json');
+const emojiMap = require(`${process.cwd()}/util/components/emojilib.json`);
 
 const client = new Discord.Client(clientOps);
 
@@ -74,12 +81,12 @@ function addTimestampLogs()
 
 //config information for the bot
 const server = "673769572804853791"; //guild ID
-const config = require('../components/config.json');
-const namedChannels = require('../components/namedChannels.json');
+const config = require(`${process.cwd()}/util/components/config.json`);
+const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
 
 //inputs for the RoleCall objects
-const roleCallConfig = require('../components/roleCallConfig.json');
-const roleCallConfigContinued = require('../components/roleCallConfigContinued.json');
+const roleCallConfig = require(`${process.cwd()}/util/components/roleCallConfig.json`);
+const roleCallConfigContinued = require(`${process.cwd()}/util/components/roleCallConfigContinued.json`);
 
 /*
  declare the variables that hold the RoleCall objects. they
@@ -99,7 +106,7 @@ var myChannels = [];
 var pollChannelIndex;
 
 //I call this .ready, even though there isn't actually a .ready anywhere
-client.on("ready", async () => {
+client.once("ready", async () => {
 	const memberRoleId = '674746958170292224';
 	addTimestampLogs();
 	let firstRoleArr = roleCallConfig.roleInputArray;
@@ -237,6 +244,7 @@ client.on("raw", packet =>
         const reaction = message.reactions.get(emoji);
         // Adds the currently reacting user to the reaction's users collection.
         if (reaction) reaction.users.set(packet.d.user_id, user);
+		else return console.error(`Could not retrieve reaction for emoji ${emoji}`);
         // Check which type of event it is before emitting
         if (packet.t === 'MESSAGE_REACTION_ADD') {
             messageReactionAdd(reaction, user);
@@ -426,10 +434,7 @@ client.on("message", async message => {
 			if(message.channel.type !== 'dm') 
 			{ 
 				selfDeleteReply(message, `try sending me that command as a direct message instead!`, '20s');
-				try {
-					await authorReply(message, `Here is your command, you can send this back to me or edit it first:` + '```\n' + message.content + '\n```');
-				} catch(ignore) {
-				}
+				authorReply(message, `Here is your command, you can send this back to me or edit it first:` + '```\n' + message.content + '\n```').catch();
 				return;
 			}
 			if(args.length == 0) return selfDeleteReply(message, `you cannot submit an empty message`);
@@ -489,22 +494,27 @@ client.on("message", async message => {
 					//emoji is a unicode emoji 
 					//the order here is: get svg image from remote (save local), convert to png (save local), send png, delete local svg and png
 					const emojiName = emojiMap[messageElement] ? emojiMap[messageElement][0] : emojiInUnicode;
-					const picFolder = `file_dump`;
+					const picPath = path.normalize(`${process.cwd()}/../file_dump/${emojiInUnicode}`);
 					//data for vector image of emoji
 					const emojiSvg = await rp(githubResponseB.split('data-image  = "')[1].split('"')[0]);
-					await fs.outputFile(`./${picFolder}/${emojiInUnicode}.svg`,emojiSvg);
-					//convert from svg to png
-					await svgToPng.convert(path.join(__dirname,picFolder,`${emojiInUnicode}.svg`),path.join(__dirname,picFolder),{defaultWidth:722,defaultHeight:722},{type:"image/png"});
-					await message.channel.send({files: 
-						[{attachment: `./${picFolder}/${emojiInUnicode}.png`,
-						name: `${emojiName}.png`}]
-					}).catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err}`)});
-					//cleanup created files
-					await fs.remove(`./${picFolder}/${emojiInUnicode}.svg`)
-					.catch(err => {
-						console.error(err)
-					});
-					await fs.remove(`./${picFolder}/${emojiInUnicode}.png`)
+					await fs.outputFile(`${picPath}.svg`,emojiSvg);
+					try {
+						//convert from svg to png
+						await svgToPng.convert(`${picPath}.svg`,path.normalize(`${process.cwd()}/../file_dump`),{defaultWidth:722,defaultHeight:722},{type:"image/png"});
+						await message.channel.send({files: 
+							[{attachment: `${picPath}.png`,
+							name: `${emojiName}.png`}]
+						}).catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err}`)});
+						//cleanup created png
+						await fs.remove(`${picPath}.png`)
+						.catch(err => {
+							console.error(err)
+						});
+					} catch(e) {
+						console.error(e.stack);
+					}
+					//delete svg regardless of png success
+					await fs.remove(`${picPath}.svg`)
 					.catch(err => {
 						console.error(err)
 					});
@@ -675,25 +685,30 @@ client.on("message", async message => {
 								const timeCollector = message.channel.createMessageCollector(mno => mno.author === message.author && polltimeRegex.test(mno.content), {time: duration, errors: ['time'] });
 								timeCollector.on('collect', msg => 
 								{
-									const life = dur.array()[0].content.slice(config.prefix.length).trim().split(/ +/g);
+									const life = msg.content.trim().split(/ +/g);
 									life.shift(); //remove command text
 									const timeInput = life.join('');
 									const parsedTime = parseTime(timeInput); //create milliseconds int from time input
 									if(!isNaN(parsedTime)) //check if there was a time given, else it stays default
 									{
 										console.log(`setting time to ${timeInput} which is ${parsedTime}`);
+										message.channel.send(`Duration changed to \`${timeInput}\` which is \`${parsedTime}\``);
 										duration = parsedTime;
-									} else { console.log(`using default time ${duration}`) }
+									} else { 
+										console.log(`using previous time ${duration}`);
+										selfDeleteReply(message, `An error occured with that time input. The previous time ${millisecondsToString(duration)} (${duration}) will be used`, '25s');
+									}
 								});
 								const pollstartRegex = new RegExp(`^${config.prefix}pollstart`);
 								message.channel.awaitMessages(mno => mno.author === message.author && pollstartRegex.test(mno.content), {maxMatches: 1, time: duration, errors: ['time'] })
 								.then(async dur => { //async keyword is required in the function declaration to use await keyword
 									timeCollector.stop();
-									let filename = `${__dirname}/poll_results/pollresult_${message.id}`; //initalize filename
+									const filename = path.normalize(`${process.cwd()}/../poll_results/pollresult_${message.id}`); //initalize filename & path
 									let pinnedSystemMsg = null;
 									let pollMsg = await message.guild.channels.get(targetChan).send(edit).catch(e => {console.error(e)}); //send copy of poll message to targetChan
 									await pollMsg.pin();
 									pinnedSystemMsg = message.channel.lastMessage;
+									if(pinnedSystemMsg.type === 'PINS_ADD') pinnedSystemMsg.delete();
 									let cleanResults = [0];
 									try{
 										for(let myI = 0; myI < buttons.length; myI++) 
@@ -757,7 +772,7 @@ client.on("message", async message => {
 										{
 											console.log(`Poll cancelled`);
 											pollMsg.delete();
-											pinnedSystemMsg.delete();
+											//pinnedSystemMsg.delete();
 										} else {
 											console.log(`Poll complete`);
 											let toSendTitle = `__Results for poll: ${question}${!question.includes('?')?'?':''}__`; //begin constructing result version of poll
@@ -782,7 +797,7 @@ client.on("message", async message => {
 											message.author.send(endBed); //DM a copy of results to the author
 											pollMsg.edit("", endBed); //swap the results in for the poll (also removes the vote instructions from the bottom)
 											pollMsg.unpin(); //unpins, as it is no longer an active poll
-											if(pinnedSystemMsg.author.id == client.user.id) pinnedSystemMsg.delete();
+											//if(pinnedSystemMsg.author.id == client.user.id) pinnedSystemMsg.delete();
 											//records final results in file, including completion status. currently not used
 											recordFile({'question' : question, 'authorName' : message.author.username, 'authorId' : message.author.id, 'pollMsg' : pollMsg.id, 'responseCount' : responseCount, 'cleanResults' : cleanResults, 'toSend' : toSend, 'totalVotes' : collected.size, 'voters' : collected.users, 'complete' : true}, `${filename}.json`)();
 										}
@@ -821,217 +836,6 @@ client.on("message", async message => {
 	execute();
 	if(log) console.log("processed " + command + " command");
 });
-
-
-function cleanReply(message, input, duration)
-{
-	return new Promise(async (resolve,reject) =>
-	{
-		if(!(message instanceof Discord.Message)) throw new TypeError(`message is not Discord Message`);
-		if(typeof input === "undefined") input = "an unknown error occured";
-		if(typeof duration === "undefined") duration = "12s";
-		const errReply = await message.reply(input);
-		if(duration == 0) resolve();
-		await delay(duration);
-		await errReply.delete();
-		if(message.channel.type !== 'dm')
-		{
-			try {
-				await message.delete();
-			} catch(e) {
-				console.error(`Error with cleanup after cleanReply:\n${e}`);
-			}
-		}
-		resolve();
-	});
-}
-
-//like a cleanReply but only cleans self up
-function selfDeleteReply(message, input, duration)
-{
-	return new Promise(async (resolve,reject) =>
-	{
-		if(!(message instanceof Discord.Message)) throw new TypeError(`message is not Discord Message`);
-		if(typeof input === "undefined") input = "an unknown error occured";
-		if(typeof duration === "undefined") duration = "12s";
-		const errReply = await message.reply(input);
-		if(duration == 0) resolve();
-		await delay(duration);
-		await errReply.delete();
-		resolve();
-	});
-}
-
-function authorReply(message, input)
-{
-	return new Promise(async (resolve,reject) =>
-	{
-		if(typeof message === "undefined") throw new TypeError(`message is undefined`);
-		if(!(message instanceof Discord.Message)) throw new TypeError(`message is not Discord Message`);
-		if(typeof input === "undefined") input = "an unknown error occured";
-		try {
-			await message.author.send(input);
-		} catch(e) {
-			selfDeleteReply(`It looks like I can't DM you. Do you have DMs disabled?`);
-			reject(false);
-		}
-		resolve();
-	});
-}
-
-/*
- parse time inputs with flexible syntax. accepts any mix of years, weeks, days, hours, minutes, seconds, milliseconds.
- does not accept months because how many days is a month anyways? why do you need that?
- 
- 1h 15m 30s 200ms
- 1h
- 15m
- 30s
- 200ms
- 1h 30s
- 15m 30s
-*/
-function parseTime(timeToParse)
-{
-	let timeValue = timeToParse;
-	if(isNaN(timeToParse))
-	{
-		const timeString = timeToParse;
-		if(!isTimeFormat(timeString))
-		{
-			throw new SyntaxError('must be in the format 1d 2h 3m 4s 5ms (any segment is optional, such as `1h 1m` is valid)');
-		} else {
-			let match = null;
-			const yearReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))y/gi;
-			const weekReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))w/gi;
-			const dayReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))d/gi;
-			const hourReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))h/gi;
-			const minReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))m(?!s)/gi;
-			const secReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))s/gi;
-			const msReg = /(-?(?:\d+|0b[01]+|0o[0-7]+|\d+(?:\.\d+)?e-?\d+|0x[\dabcedf]+))ms/gi;
-			let years = 0;
-			let weeks = 0;
-			let days = 0;
-			let hours = 0;
-			let minutes = 0;
-			let seconds = 0;
-			let milliseconds = 0;
-			match = yearReg.exec(timeString);
-			if(match !== null)
-			{
-				years = Number(match[1]);
-			}
-			match = null;
-			match = weekReg.exec(timeString);
-			if(match !== null)
-			{
-				weeks = Number(match[1]);
-			}
-			match = null;
-			match = dayReg.exec(timeString);
-			if(match !== null)
-			{
-				days = Number(match[1]);
-			}
-			match = null;
-			match = hourReg.exec(timeString);
-			if(match !== null)
-			{
-				hours = Number(match[1]);
-			}
-			match = null;
-			match = minReg.exec(timeString);
-			if(match !== null)
-			{
-				minutes = Number(match[1]);
-			}
-			match = null;
-			match = secReg.exec(timeString);
-			if(match !== null)
-			{
-				seconds = Number(match[1]);
-			}
-			match = null;
-			match = msReg.exec(timeString);
-			if(match !== null)
-			{
-				milliseconds = Number(match[1]);
-			}
-			days += 365*years;
-			days += 7*weeks;
-			hours += 24*days;
-			minutes += hours*60;
-			seconds += minutes*60;
-			milliseconds += seconds*1000;
-			timeValue = milliseconds;
-		}
-	}
-	return timeValue;
-}
-
-/*
-
- milliseconds into a human readable string
- 
-*/
-function millisecondsToString(milliseconds)
-{
-	if(isNaN(milliseconds))
-	{
-		throw new TypeError(`milliseconds must be a number`);
-	}
-	let timeString = ``;
-	let days = 0;
-	let hours = 0;
-	let minutes = 0;
-	let seconds = 0;
-	seconds = Math.trunc(milliseconds/1000);
-	minutes = Math.trunc(seconds/60);
-	hours = Math.trunc(minutes/60);
-	days = Math.trunc(hours/24);
-	milliseconds = milliseconds % 1000;
-	seconds = seconds % 60;
-	minutes = minutes % 60;
-	hours = hours % 24;
-	if(days != 0)
-	{
-		timeString += `${days}d`
-	}
-	if(hours != 0)
-	{
-		timeString += `${hours}h`
-	}
-	if(minutes != 0)
-	{
-		timeString += `${minutes}m`
-	}
-	if(seconds != 0)
-	{
-		timeString += `${seconds}s`
-	}
-	if(milliseconds != 0)
-	{
-		timeString += `${milliseconds}ms`
-	}
-	return timeString;
-}
-
-/*
-
- create a timed delay promise
- 
- */
-function delay(timeToDelay)
-{
-	const timeInMilliseconds = parseTime(timeToDelay);
-	return new Promise(async (resolve,reject)=>
-	{
-		if(isNaN(timeInMilliseconds)) reject(false);
-		setTimeout(async function(){
-			resolve(true);
-		}, timeInMilliseconds);
-	});
-}
 
 //logs client in
 client.login(config.token);
