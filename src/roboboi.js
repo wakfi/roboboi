@@ -434,10 +434,7 @@ client.on("message", async message => {
 			if(message.channel.type !== 'dm') 
 			{ 
 				selfDeleteReply(message, `try sending me that command as a direct message instead!`, '20s');
-				try {
-					await authorReply(message, `Here is your command, you can send this back to me or edit it first:` + '```\n' + message.content + '\n```');
-				} catch(ignore) {
-				}
+				authorReply(message, `Here is your command, you can send this back to me or edit it first:` + '```\n' + message.content + '\n```').catch();
 				return;
 			}
 			if(args.length == 0) return selfDeleteReply(message, `you cannot submit an empty message`);

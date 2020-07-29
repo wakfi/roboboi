@@ -9,7 +9,7 @@ function cleanReply(message, input, duration)
 			if(message.channel.type !== 'dm') await message.delete();
 			else reject(message.channel);
 		} catch(e) {
-			console.error(`Error with cleanup after cleanReply:\n${e}`);
+			console.error(`Error with cleanReply:\n${e}`);
 		}
 		resolve(errReply);
 	});
