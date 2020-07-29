@@ -7,9 +7,11 @@ var svgToPng = require('svg-to-png');
 var path = require('path');
 var fs = require('fs-extra');
 const RoleCall = require('discord-role-call');
-const PollCollector = require('../components/PollCollector.js');
-const recordFile = require('../components/recordFile.js');
-const clientOps = require('../components/clientOps.json');
+
+const PollCollector = require(`${process.cwd()}/util/components/PollCollector.js`);
+const recordFile = require(`${process.cwd()}/util/components/recordFile.js`);
+const clientOps = require(`${process.cwd()}/util/components/clientOps.json`);
+
 const isTimeFormat = require(`${process.cwd()}/util/time/isTimeFormat.js`);
 const millisecondsToString = require(`${process.cwd()}/util/time/millisecondsToString.js`);
 const parseTime = require(`${process.cwd()}/util/time/parseTime.js`);
@@ -41,7 +43,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-const emojiMap = require('../components/emojilib.json');
+const emojiMap = require(`${process.cwd()}/util/components/emojilib.json`);
 
 const client = new Discord.Client(clientOps);
 
@@ -79,12 +81,12 @@ function addTimestampLogs()
 
 //config information for the bot
 const server = "673769572804853791"; //guild ID
-const config = require('../components/config.json');
-const namedChannels = require('../components/namedChannels.json');
+const config = require(`${process.cwd()}/util/components/config.json`);
+const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
 
 //inputs for the RoleCall objects
-const roleCallConfig = require('../components/roleCallConfig.json');
-const roleCallConfigContinued = require('../components/roleCallConfigContinued.json');
+const roleCallConfig = require(`${process.cwd()}/util/components/roleCallConfig.json`);
+const roleCallConfigContinued = require(`${process.cwd()}/util/components/roleCallConfigContinued.json`);
 
 /*
  declare the variables that hold the RoleCall objects. they
@@ -104,7 +106,7 @@ var myChannels = [];
 var pollChannelIndex;
 
 //I call this .ready, even though there isn't actually a .ready anywhere
-client.on("ready", async () => {
+client.once("ready", async () => {
 	const memberRoleId = '674746958170292224';
 	addTimestampLogs();
 	let firstRoleArr = roleCallConfig.roleInputArray;
@@ -498,19 +500,19 @@ client.on("message", async message => {
 					const picFolder = `file_dump`;
 					//data for vector image of emoji
 					const emojiSvg = await rp(githubResponseB.split('data-image  = "')[1].split('"')[0]);
-					await fs.outputFile(`./${picFolder}/${emojiInUnicode}.svg`,emojiSvg);
+					await fs.outputFile(path.normalize(`${process.cwd()}/../${picFolder}/${emojiInUnicode}.svg`),emojiSvg);
 					//convert from svg to png
 					await svgToPng.convert(path.join(__dirname,picFolder,`${emojiInUnicode}.svg`),path.join(__dirname,picFolder),{defaultWidth:722,defaultHeight:722},{type:"image/png"});
 					await message.channel.send({files: 
-						[{attachment: `./${picFolder}/${emojiInUnicode}.png`,
+						[{attachment: path.normalize(`${process.cwd()}/../${picFolder}/${emojiInUnicode}.png`),
 						name: `${emojiName}.png`}]
 					}).catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err}`)});
 					//cleanup created files
-					await fs.remove(`./${picFolder}/${emojiInUnicode}.svg`)
+					await fs.remove(`${process.cwd()}/../${picFolder}/${emojiInUnicode}.svg`)
 					.catch(err => {
 						console.error(err)
 					});
-					await fs.remove(`./${picFolder}/${emojiInUnicode}.png`)
+					await fs.remove(`${process.cwd()}/../${picFolder}/${emojiInUnicode}.png`)
 					.catch(err => {
 						console.error(err)
 					});
@@ -695,7 +697,7 @@ client.on("message", async message => {
 								message.channel.awaitMessages(mno => mno.author === message.author && pollstartRegex.test(mno.content), {maxMatches: 1, time: duration, errors: ['time'] })
 								.then(async dur => { //async keyword is required in the function declaration to use await keyword
 									timeCollector.stop();
-									let filename = `${__dirname}/poll_results/pollresult_${message.id}`; //initalize filename
+									const filename = path.normalize(`${process.cwd()}/../poll_results/pollresult_${message.id}`); //initalize filename & path
 									let pinnedSystemMsg = null;
 									let pollMsg = await message.guild.channels.get(targetChan).send(edit).catch(e => {console.error(e)}); //send copy of poll message to targetChan
 									await pollMsg.pin();
