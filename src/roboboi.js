@@ -695,8 +695,12 @@ client.on("message", async message => {
 									if(!isNaN(parsedTime)) //check if there was a time given, else it stays default
 									{
 										console.log(`setting time to ${timeInput} which is ${parsedTime}`);
+										message.channel.send(`Duration changed to \`${timeInput}\` which is \`${parsedTime}\``);
 										duration = parsedTime;
-									} else { console.log(`using default time ${duration}`) }
+									} else { 
+										console.log(`using previous time ${duration}`);
+										selfDeleteReply(message, `An error occured with that time input. The previous time ${millisecondsToString(duration)} (${duration}) will be used`, '25s');
+									}
 								});
 								const pollstartRegex = new RegExp(`^${config.prefix}pollstart`);
 								message.channel.awaitMessages(mno => mno.author === message.author && pollstartRegex.test(mno.content), {maxMatches: 1, time: duration, errors: ['time'] })
