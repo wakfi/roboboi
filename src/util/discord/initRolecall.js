@@ -1,3 +1,4 @@
+const RoleCall = require(`discord-role-call`);
 const {Collection} = require(`${process.cwd()}/util/discord/structs.js`);
 const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
 
@@ -15,17 +16,17 @@ function initRolecall(client,server,memberRole)
 	{
 		let firstRoleArr = roleCallConfig.roleInputArray;
 		let secondRoleArr = roleCallConfigContinued.roleInputArray;
-		for(let i = 0; i < 5; i++)						{ yearRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
-		for(let i = 5; i < 10; i++)						{ majorRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
-		for(let i = 10; i < firstRoleArr.length; i++)	{ courseRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
-		for(let i = 0; i < secondRoleArr.length; i++)	{ courseRoles.set(secondRoleArr[i].role, client.guilds.get(server).roles.get(secondRoleArr[i].role)) }
+		for(let i = 0; i < 5; i++)						{ yearRoles.set(firstRoleArr[i].role, client.guilds.cache.get(server).roles.cache.get(firstRoleArr[i].role)) }
+		for(let i = 5; i < 10; i++)						{ majorRoles.set(firstRoleArr[i].role, client.guilds.cache.get(server).roles.cache.get(firstRoleArr[i].role)) }
+		for(let i = 10; i < firstRoleArr.length; i++)	{ courseRoles.set(firstRoleArr[i].role, client.guilds.cache.get(server).roles.cache.get(firstRoleArr[i].role)) }
+		for(let i = 0; i < secondRoleArr.length; i++)	{ courseRoles.set(secondRoleArr[i].role, client.guilds.cache.get(server).roles.cache.get(secondRoleArr[i].role)) }
 		
 		
 		try	{
 			client.roleCalls.push(new RoleCall(client,roleCallConfig));
 			client.roleCalls.push(new RoleCall(client,roleCallConfigContinued));
 		} catch(err) {
-			await client.guilds.get(server).channels.get(namedChannels.testing).send(`role call went\n> yikes`);
+			await client.guilds.cache.get(server).channels.cache.get(namedChannels.testing).send(`role call went\n> yikes`);
 			reject(err);
 			return;
 		}	
@@ -45,9 +46,9 @@ function initRolecall(client,server,memberRole)
 								 
 					if(addTheRole)
 					{
-						if(!member.roles.has(memberRole))
+						if(!member.roles.cache.has(memberRole))
 						{
-							client.roleCalls[0].addRole(member,member.guild.roles.get(memberRole));
+							client.roleCalls[0].addRole(member,member.guild.roles.cache.get(memberRole));
 						}
 					}
 				}
@@ -60,9 +61,9 @@ function initRolecall(client,server,memberRole)
 					client.roleCalls[1].addRole(member,role)
 					.catch(err=>{console.error(err.stack)});
 					
-					if(!member.roles.has(memberRole))
+					if(!member.roles.cache.has(memberRole))
 					{
-						client.roleCalls[1].addRole(member,member.guild.roles.get(memberRole));
+						client.roleCalls[1].addRole(member,member.guild.roles.cache.get(memberRole));
 					}
 				}
 			});
@@ -74,13 +75,13 @@ function initRolecall(client,server,memberRole)
 					client.roleCalls[0].removeRole(member,role)
 					.then(newMember => 
 					{
-						if(newMember.roles.size == 2)
+						if(newMember.roles.cache.size == 2)
 						{
-							if(newMember.roles.has(memberRole))
+							if(newMember.roles.cache.has(memberRole))
 							{
-								client.roleCalls[0].removeRole(newMember,newMember.guild.roles.get(memberRole));
+								client.roleCalls[0].removeRole(newMember,newMember.guild.roles.cache.get(memberRole));
 							} else {
-								client.roleCalls[0].addRole(newMember,newMember.guild.roles.get(memberRole));
+								client.roleCalls[0].addRole(newMember,newMember.guild.roles.cache.get(memberRole));
 							}
 						}
 					})
@@ -95,13 +96,13 @@ function initRolecall(client,server,memberRole)
 					client.roleCalls[1].removeRole(member,role)
 					.then(newMember => 
 					{
-						if(newMember.roles.size == 2)
+						if(newMember.roles.cache.size == 2)
 						{
-							if(newMember.roles.has(memberRole))
+							if(newMember.roles.cache.has(memberRole))
 							{
-								client.roleCalls[1].removeRole(newMember,newMember.guild.roles.get(memberRole));
+								client.roleCalls[1].removeRole(newMember,newMember.guild.roles.cache.get(memberRole));
 							} else {
-								client.roleCalls[1].addRole(newMember,newMember.guild.roles.get(memberRole));
+								client.roleCalls[1].addRole(newMember,newMember.guild.roles.cache.get(memberRole));
 							}
 						}
 					})
