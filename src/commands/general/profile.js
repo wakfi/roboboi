@@ -1,5 +1,5 @@
 const path = require('path');
-const MessageEmbed = require((require.resolve('discord.js')).split(path.sep).slice(0, -1).join(path.sep) + `${path.sep}structures${path.sep}MessageEmbed.js`);
+const {MessageEmbed} = require(`${process.cwd()}/util/discord/structs.js`);
 const cleanReply = require(`${process.cwd()}/util/cleanReply.js`);
 const selfDeleteReply = require(`${process.cwd()}/util/selfDeleteReply.js`);
 const millisecondsToString = require(`${process.cwd()}/util/millisecondsToString.js`);

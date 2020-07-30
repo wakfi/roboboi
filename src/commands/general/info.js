@@ -1,8 +1,8 @@
 const got = require('got');
 const path = require('path');
-const MessageEmbed = require((require.resolve('discord.js')).split(path.sep).slice(0, -1).join(path.sep) + `${path.sep}structures${path.sep}MessageEmbed.js`);
+const {MessageEmbed} = require(`${process.cwd()}/util/discord/structs.js`);
 const authorReply = require(`${process.cwd()}/util/authorReply.js`);
-const { prefix } = require(`${process.cwd()}/components/config.json`);
+const {prefix} = require(`${process.cwd()}/components/config.json`);
 
 module.exports = {
 	name: 'info',

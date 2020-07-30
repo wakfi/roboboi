@@ -1,4 +1,5 @@
-const ReactionCollector = require("discord.js").ReactionCollector;
+const path = require('path');
+const ReactionCollector = require((require.resolve('discord.js')).split(path.sep).slice(0, -1).join(path.sep) + `${path.sep}structures${path.sep}ReactionCollector.js`);
 
 class PollCollector extends ReactionCollector
 {

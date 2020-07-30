@@ -1,3 +1,7 @@
+const recordFile = require(`${process.cwd()}/util/general/recordFile.js`);
+const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
+
+
 module.exports = {
 	name: 'poll',
 	description: `Follow the prompts after that. I can provide a general blueprint of the syntax for all of the prompts if wanted. Note: don't make more than one poll per user without starting it, the syntax hasn't been prepared for that yet`,
@@ -47,7 +51,7 @@ module.exports = {
 						answers += `\n\t${buttons[buttons.length-1]} ${post}`;
 					}
 					let foot = `\nVote by reacting with the corresponding emoji!`;
-					const edit = new Discord.RichEmbed() //generates the actual RichEmbed object
+					const edit = new Discord.MessageEmbed() //generates the actual RichEmbed object
 						.setTitle(poll.content) //title is the text of the message we are going to edit this into
 						.setAuthor(message.member.displayName, message.author.avatarURL) //author is the poll authors name and avatar, to show who wrote it
 						.setColor(0xFF00FF) //my signiture FF00FF pink

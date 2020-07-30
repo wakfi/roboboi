@@ -5,7 +5,7 @@ const fs = require('fs-extra');
 const USERS_PATTERN = /<@!?\d{17,18}>/i
 
 const { prefix, clientOptions, activity, clientStatus, welcome } = require(`${process.cwd()}/util/components/config.json`);
-const { token } = require(`${process.cwd()}/util/components/token.json`);
+const {token} = require(`${process.cwd()}/util/components/token.json`);
 const permLevels = require(`${process.cwd()}/util/components/permLevels.js`);
 
 const addTimestampLogs = require(`${process.cwd()}/util/general/addTimestampLogs.js`);

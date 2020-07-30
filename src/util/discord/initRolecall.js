@@ -1,4 +1,4 @@
-const Collection = require((require.resolve('discord.js')).split(path.sep).slice(0, -1).join(path.sep) + `${path.sep}util${path.sep}Collection.js`);
+const {Collection} = require(`${process.cwd()}/util/discord/structs.js`);
 const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
 
 //inputs for the RoleCall objects

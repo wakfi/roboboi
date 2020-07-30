@@ -1,5 +1,5 @@
 const path = require('path');
-const MessageEmbed = require((require.resolve('discord.js')).split(path.sep).slice(0, -1).join(path.sep) + `${path.sep}structures${path.sep}MessageEmbed.js`);
+const {MessageEmbed} = require(`${process.cwd()}/util/discord/structs.js`);
 const replaceLast = require(`${process.cwd()}/util/replaceLast.js`);
 const pad = require(`${process.cwd()}/util/padZeros.js`);
 
