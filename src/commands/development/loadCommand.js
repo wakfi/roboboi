@@ -1,5 +1,5 @@
 const assert = require('assert');
-const loadAllCommands = require(`${process.cwd()}/util/loadAllCommands.js`);
+const loadAllCommands = require(`${process.cwd()}/util/components/loadAllCommands.js`);
 
 module.exports = {
 	name: 'loadCommand',

@@ -1,8 +1,8 @@
 const path = require('path');
 const {MessageEmbed} = require(`${process.cwd()}/util/discord/structs.js`);
-const authorReply = require(`${process.cwd()}/util/authorReply.js`);
-const parseTruthyArgs = require(`${process.cwd()}/util/parseTruthyArgs.js`);
-const {prefix} = require(`${process.cwd()}/components/config.json`);
+const authorReply = require(`${process.cwd()}/util/reply/authorReply.js`);
+const parseTruthyArgs = require(`${process.cwd()}/util/general/parseTruthyArgs.js`);
+const {prefix} = require(`${process.cwd()}/util/components/config.json`);
 const EMBED_BACKGROUND_COLOR_IMAGE = `https://i.imgur.com/0NR5nbD.png`;
 const EMBED_MAX_FIELDS = 25;
 
@@ -15,10 +15,7 @@ module.exports = {
 	permLevel: 'User',
 	async execute(message, args) {
 		const level = message.client.permlevel(message);
-		let wcfgOn = false;
 		const filter = (function(){
-			const syms = args.find(arg => typeof arg === 'symbol');
-			if(syms === message.client.commands.get('welcomeConfig').wcfg) {wcfgOn=true; args.pop();return (cmd => !cmd.unlisted && cmd.category === 'welcome');}
 			return (cmd => truthy.allin || !cmd.unlisted);
 		})();
 		const truthy = parseTruthyArgs(args, ['allin'], ['a']);
@@ -88,7 +85,6 @@ module.exports = {
 						checkCount();
 						let fieldBody = ``;
 						fieldBody += `Description: ${cmd.description?cmd.description:'No Description'}\n`;
-						if(wcfgOn && cmd.wcfgAliases) fieldBody += `Config Alias(es): ${cmd.wcfgAliases.join(', ')}\n`;
 						embed.addField(`${prefix}${cmd.name}`,fieldBody.trim());
 						numberOfFields++;
 						checkCount();
@@ -99,7 +95,7 @@ module.exports = {
 			embedsToSend[embedsToSend.length-1]
 				.setFooter(`${prefix}help, ${prefix}commands, ${prefix}command, ${prefix}?`)
 				.setTimestamp(new Date());
-			embedsToSend.forEach(async embed => wcfgOn ? await message.channel.send(embed) : await authorReply(message,embed));
+			embedsToSend.forEach(async embed => await authorReply(message,embed));
 		} else {
 			// ?command -h, ?help <command>
 			const commandName = args.shift();
@@ -111,7 +107,6 @@ module.exports = {
 			let fieldBody = ``;
 			if(command.unlisted) fieldBody += `*Unlisted*\n`;
 			if(command.aliases) fieldBody += `Alias(es): ${command.aliases.join(', ')}\n`;
-			if(wcfgOn && command.wcfgAliases) fieldBody += `Config Alias(es): ${command.wcfgAliases.join(', ')}\n`;
 			fieldBody += `Description: ${command.description ? command.description : command.name.charAt(0).toUpperCase() + command.name.slice(1)}\n`;
 			fieldBody += `Usage: \`${prefix}${command.name}${command.usage ? ' ' + command.usage.join('`\n\u200b \u200b \u200b \u200b \u200b \u200b \u200b \u200b \u200b \u200b \u200b \u200b \u200b \u200b `' + prefix + command.name + ' ') : ''}\`\n`;
 			if(command.usageNote) fieldBody += `${command.usageNote}\n`;
@@ -124,7 +119,7 @@ module.exports = {
 				.addField(`${command.permLevel==='User' ? 'Available to all users' : 'Restricted to: ' + command.permLevel}`, fieldBody.trim())
 				.setFooter(`\`<arg>\` denotes required arguments; \`[arg]\` denotes optional arguments`)
 				.setTimestamp(new Date());
-			wcfgOn ? message.channel.send(embed) : authorReply(message, embed);
+			authorReply(message, embed);
 		}
 	}
 };

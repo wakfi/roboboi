@@ -1,8 +1,8 @@
-const got = require('got');
+const nf = require('node-fetch');
 const path = require('path');
 const {MessageEmbed} = require(`${process.cwd()}/util/discord/structs.js`);
-const authorReply = require(`${process.cwd()}/util/authorReply.js`);
-const {prefix} = require(`${process.cwd()}/components/config.json`);
+const authorReply = require(`${process.cwd()}/util/reply/authorReply.js`);
+const {prefix} = require(`${process.cwd()}/util/components/config.json`);
 
 module.exports = {
 	name: 'info',

@@ -1,9 +1,9 @@
 const path = require('path');
 const {MessageEmbed} = require(`${process.cwd()}/util/discord/structs.js`);
-const cleanReply = require(`${process.cwd()}/util/cleanReply.js`);
-const selfDeleteReply = require(`${process.cwd()}/util/selfDeleteReply.js`);
-const millisecondsToString = require(`${process.cwd()}/util/millisecondsToString.js`);
-const printTimePretty = require(`${process.cwd()}/util/printTimePretty.js`);
+const cleanReply = require(`${process.cwd()}/util/reply/cleanReply.js`);
+const selfDeleteReply = require(`${process.cwd()}/util/reply/selfDeleteReply.js`);
+const millisecondsToString = require(`${process.cwd()}/util/time/millisecondsToString.js`);
+const printTimePretty = require(`${process.cwd()}/util/time/printTimePretty.js`);
 const USERS_PATTERN = /<@!?(\d{17,18})>/i
 const DISCORD_EPOCH = 1420070400000 //unix of first second of 2015
 
@@ -87,7 +87,7 @@ module.exports = {
 			const status = member.presence.status.charAt(0).toUpperCase() + member.presence.status.slice(1);
 			const richActivity = member.presence.activities.length > 0 ? member.presence.activities[0] : 'None';
 			const currentActivityString = richActivity.type ? `**${richActivity.type.charAt(0).toUpperCase()}${richActivity.type.slice(1).toLowerCase()} ${richActivity}** for ${printTimePretty(millisecondsToString(Date.now() - richActivity.createdTimestamp),'largest unit available')}` : richActivity;
-			const premiumSinceDays = member.premiumSinceTimestamp ? printTimePretty(millisecondsToString(Math.trunc((Date.now() - member.joinedAtTimestamp)/1000)*1000), 'd') || '0 days' : '';
+			const premiumSinceDays = member.premiumSinceTimestamp ? printTimePretty(millisecondsToString(Math.trunc((Date.now() - member.premiumSinceTimestamp)/1000)*1000), 'd') || '0 days' : '';
 			const accountCreationTimeDays = printTimePretty(millisecondsToString(Math.trunc((Date.now() - accountCreationTimestamp)/1000)*1000), 'd') || '0 days';
 			const joinedAtDays = printTimePretty(millisecondsToString(Math.trunc((Date.now() - member.joinedTimestamp)/1000)*1000), 'd') || '0 days';
 			const embed = new MessageEmbed()

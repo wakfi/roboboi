@@ -1,4 +1,4 @@
-const cleanReply = require(`${process.cwd()}/util/cleanReply.js`);
+const cleanReply = require(`${process.cwd()}/util/reply/cleanReply.js`);
 
 module.exports = {
 	name: 'purge',

@@ -1,5 +1,5 @@
-const selfDeleteReply = require(`${process.cwd()}/util/selfDeleteReply.js`);
-const { prefix } = require(`${process.cwd()}/components/config.json`);
+const selfDeleteReply = require(`${process.cwd()}/util/reply/selfDeleteReply.js`);
+const { prefix } = require(`${process.cwd()}/util/components/config.json`);
 
 module.exports = {
 	name: 'setAvatar',

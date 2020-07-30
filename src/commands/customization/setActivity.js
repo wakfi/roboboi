@@ -1,10 +1,9 @@
-const path = require('path');
-const configPath = path.resolve('./components/config.json');
+const configPath = `${process.cwd()}/util/components/config.json`;
 const config = require(configPath);
-const recordFile = require(`${process.cwd()}/util/recordFile.js`);
-const parsePositionalArgs = require(`${process.cwd()}/util/parsePositionalArgs.js`);
-const firstLetterCapital = require(`${process.cwd()}/util/firstLetterCapital.js`);
-const selfDeleteReply = require(`${process.cwd()}/util/selfDeleteReply.js`);
+const recordFile = require(`${process.cwd()}/util/general/recordFile.js`);
+const parsePositionalArgs = require(`${process.cwd()}/util/general/parsePositionalArgs.js`);
+const firstLetterCapital = require(`${process.cwd()}/util/general/firstLetterCapital.js`);
+const selfDeleteReply = require(`${process.cwd()}/util/reply/selfDeleteReply.js`);
 
 module.exports = {
 	name: 'setActivity',

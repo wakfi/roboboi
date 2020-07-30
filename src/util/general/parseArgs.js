@@ -1,5 +1,5 @@
-const parsePositionalArgs = require(`${process.cwd()}/util/parsePositionalArgs.js`);
-const parseTruthyArgs = require(`${process.cwd()}/util/parseTruthyArgs.js`);
+const parsePositionalArgs = require(`${process.cwd()}/util/general/parsePositionalArgs.js`);
+const parseTruthyArgs = require(`${process.cwd()}/util/general/parseTruthyArgs.js`);
 
 //convenience method to merge parsePositionalArgs and parseTruthyArgs into one function
 function parseArgs(args,keys,flags,options)

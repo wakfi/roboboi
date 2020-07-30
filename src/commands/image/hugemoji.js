@@ -1,5 +1,6 @@
-const got = require('got');
-const rp = (query) => got(query, {resolveBodyOnly: true}); //originally use request-promise, now deprecated. This lambda is for backwards compatability
+const nf = require('node-fetch');
+//const rp = (query) => got(query, {resolveBodyOnly: true}); //originally use request-promise, now deprecated. This lambda is for backwards compatability
+const rp = (query) => nf(query);
 const emojiUnicode = require('emoji-unicode');
 var svgToPng = require('svg-to-png');
 var path = require('path');
@@ -28,7 +29,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-const emojiMap = require(`${process.cwd()}/components/emojilib.json`);
+const emojiMap = require(`${process.cwd()}/util/components/emojilib.json`);
 
 module.exports = {
 	name: 'hugemoji',

@@ -1,7 +1,7 @@
 const path = require('path');
 const {MessageEmbed} = require(`${process.cwd()}/util/discord/structs.js`);
-const replaceLast = require(`${process.cwd()}/util/replaceLast.js`);
-const pad = require(`${process.cwd()}/util/padZeros.js`);
+const replaceLast = require(`${process.cwd()}/util/general/replaceLast.js`);
+const pad = require(`${process.cwd()}/util/general/padZeros.js`);
 
 module.exports = {
 	name: 'uptime',

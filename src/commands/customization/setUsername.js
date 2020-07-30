@@ -1,4 +1,4 @@
-const selfDeleteReply = require(`${process.cwd()}/util/selfDeleteReply.js`);
+const selfDeleteReply = require(`${process.cwd()}/util/reply/selfDeleteReply.js`);
 
 module.exports = {
 	name: 'setUsername',
