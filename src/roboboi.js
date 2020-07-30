@@ -1,211 +1,65 @@
 function main()
 {
 const Discord = require('discord.js');
-var rp = require('request-promise');
-const emojiUnicode = require('emoji-unicode');
-var svgToPng = require('svg-to-png');
-var path = require('path');
-var fs = require('fs-extra');
-const RoleCall = require('discord-role-call');
+const fs = require('fs-extra');
+const USERS_PATTERN = /<@!?\d{17,18}>/i
 
-const PollCollector = require(`${process.cwd()}/util/components/PollCollector.js`);
-const recordFile = require(`${process.cwd()}/util/components/recordFile.js`);
-const clientOps = require(`${process.cwd()}/util/components/clientOps.json`);
+const { prefix, clientOptions, activity, clientStatus, welcome } = require(`${process.cwd()}/util/components/config.json`);
+const { token } = require(`${process.cwd()}/util/components/token.json`);
+const permLevels = require(`${process.cwd()}/util/components/permLevels.js`);
 
-const isTimeFormat = require(`${process.cwd()}/util/time/isTimeFormat.js`);
-const millisecondsToString = require(`${process.cwd()}/util/time/millisecondsToString.js`);
-const parseTime = require(`${process.cwd()}/util/time/parseTime.js`);
-const delay = require(`${process.cwd()}/util/time/delay.js`);
-const authorReply = require(`${process.cwd()}/util/reply/authorReply.js`);
+const addTimestampLogs = require(`${process.cwd()}/util/general/addTimestampLogs.js`);
 const selfDeleteReply = require(`${process.cwd()}/util/reply/selfDeleteReply.js`);
 const cleanReply = require(`${process.cwd()}/util/reply/cleanReply.js`);
+const authorReply = require(`${process.cwd()}/util/reply/authorReply.js`);
+const loadAllCommands = require(`${process.cwd()}/util/components/loadAllCommands.js`);
+const initRolecall = require(`${process.cwd()}/util/discord/initRolecall.js`);
 
-/* license for emojilib.json
-The MIT License (MIT)
+const client = new Discord.Client(clientOptions);
+client.commands = new Discord.Collection();
+loadAllCommands(client, `${process.cwd()}/commands`);
 
-Copyright (c) 2014 Mu-An Chiou
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-const emojiMap = require(`${process.cwd()}/util/components/emojilib.json`);
-
-const client = new Discord.Client(clientOps);
-
-var d = new Date();
-//adds timestamps to log outputs
-function addTimestampLogs() 
+client.levelCache = {};
+for (let i = 0; i < permLevels.length; i++) 
 {
-	let origLogFunc = console.log;
-	let origErrFunc = console.error;
-	console.log = input =>
-	{
-		d = new Date();
-		let ms = d.getMilliseconds();
-		if(typeof input === 'string')
-		{
-			let inArr = input.split(`\n`);
-			inArr.map(tex => {origLogFunc(`${d.toLocaleString('en-US',{year:'numeric',month:'numeric',day:'numeric'})} ${d.toLocaleTimeString(undefined,{hour12:false})}:${ms}${ms>99?'  ':ms>9?'   ':'    '}${tex}`)});
-		} else {
-			origLogFunc(`${d.toLocaleString('en-US',{year:'numeric',month:'numeric',day:'numeric'})} ${d.toLocaleTimeString(undefined,{hour12:false})}:${ms}${ms>99?'  ':ms>9?'   ':'    '}${input}`)
-		}
-	}
-	console.error = input =>
-	{
-		d = new Date();
-		let ms = d.getMilliseconds();
-		if(typeof input === 'string')
-		{
-			let inArr = input.split(`\n`);
-			inArr.map(tex => {origErrFunc(`${d.toLocaleString('en-US',{year:'numeric',month:'numeric',day:'numeric'})} ${d.toLocaleTimeString(undefined,{hour12:false})}:${ms}${ms>99?'  ':ms>9?'   ':'    '}${tex}`)});
-		} else {
-			origErrFunc(`${d.toLocaleString('en-US',{year:'numeric',month:'numeric',day:'numeric'})} ${d.toLocaleTimeString(undefined,{hour12:false})}:${ms}${ms>99?'  ':ms>9?'   ':'    '}${input}`)
-		}
-	}
+	const thisLevel = permLevels[i];
+	client.levelCache[thisLevel.name] = thisLevel.level;
 }
 
-//config information for the bot
-const server = "673769572804853791"; //guild ID
-const config = require(`${process.cwd()}/util/components/config.json`);
-const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
+client.permlevel = (message) => {
+	let permlvl = 0;
 
-//inputs for the RoleCall objects
-const roleCallConfig = require(`${process.cwd()}/util/components/roleCallConfig.json`);
-const roleCallConfigContinued = require(`${process.cwd()}/util/components/roleCallConfigContinued.json`);
+	const permOrder = permLevels.slice(0).sort((p, c) => p.level < c.level ? 1 : -1);
+
+	while (permOrder.length) {
+		const currentLevel = permOrder.shift();
+		if (message.guild && currentLevel.guildOnly) continue;
+		if (currentLevel.check(message)) {
+			permlvl = currentLevel.level;
+			break;
+		}
+	}
+	return permlvl;
+};
+
+//config information for the bot
+const server = `673769572804853791`; //guild ID
+const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
 
 /*
  declare the variables that hold the RoleCall objects. they
  cannot be instantiated here because the client has to login
  first, so they have to be instantiated in .ready (below)
 */
-var roleCall;
-var roleCallContinued;
-
-const yearRoles = new Discord.Collection();
-const majorRoles = new Discord.Collection();
-const courseRoles = new Discord.Collection();
-
-var myGuilds = [];
-var myChannels = [];
-
-var pollChannelIndex;
+client.roleCalls = [];
 
 //I call this .ready, even though there isn't actually a .ready anywhere
-client.once("ready", async () => {
-	const memberRoleId = '674746958170292224';
+client.once('ready', async () => 
+{
+	initRolecall(client,server);
 	addTimestampLogs();
-	let firstRoleArr = roleCallConfig.roleInputArray;
-	let secondRoleArr = roleCallConfigContinued.roleInputArray;
-	for(let i = 0; i < 5; i++)						{ yearRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
-	for(let i = 5; i < 10; i++)						{ majorRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
-	for(let i = 10; i < firstRoleArr.length; i++)	{ courseRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
-	for(let i = 0; i < secondRoleArr.length; i++)	{ courseRoles.set(secondRoleArr[i].role, client.guilds.get(server).roles.get(secondRoleArr[i].role)) }
-	
-	console.log(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} guilds.`);
-	client.user.setActivity(`${config.prefix}help for commands`);
-	
-	try	{
-		roleCall = new RoleCall(client,roleCallConfig);
-		roleCallContinued = new RoleCall(client,roleCallConfigContinued);
-	} catch(err) {
-		await client.guilds.get(server).channels.get(namedChannels.testing).send(`role call went\n> yikes`);
-		throw err;
-	}
-		
-	
-		roleCall.on('roleReactionAdd', (reaction,member,role) =>
-		{
-			if(!role.members.has(member.id)) //check if user already has role
-			{
-				let addTheRole = true;
-				if(yearRoles.has(role.id)) //check if year role
-				{
-					yearRoles.array().map(role => addTheRole = addTheRole && !role.members.has(member.id)); //check if user already has a year role
-				}
-				
-				addTheRole ? roleCall.addRole(member,role).catch(err=>{console.error(err.stack)})	:
-							 reaction.remove(member)												;
-							 
-				if(addTheRole)
-				{
-					if(!member.roles.has(memberRoleId))
-					{
-						roleCall.addRole(member,member.guild.roles.get(memberRoleId));
-					}
-				}
-			}
-		});
-
-		roleCallContinued.on('roleReactionAdd', (reaction,member,role) =>
-		{
-			if(!role.members.has(member.id)) //check if user already has role
-			{
-				roleCall.addRole(member,role)
-				.catch(err=>{console.error(err.stack)});
-				
-				if(!member.roles.has(memberRoleId))
-				{
-					roleCall.addRole(member,member.guild.roles.get(memberRoleId));
-				}
-			}
-		});
-
-		roleCall.on('roleReactionRemove', (reaction,member,role) =>
-		{
-			if(role.members.has(member.id)) //check if user does not have role
-			{
-				roleCall.removeRole(member,role)
-				.then(newMember => 
-				{
-					if(newMember.roles.size == 2)
-					{
-						if(newMember.roles.has(memberRoleId))
-						{
-							roleCall.removeRole(newMember,newMember.guild.roles.get(memberRoleId));
-						} else {
-							roleCall.addRole(newMember,newMember.guild.roles.get(memberRoleId));
-						}
-					}
-				})
-				.catch(err=>{console.error(err.stack)});
-			}
-		});
-
-		roleCallContinued.on('roleReactionRemove', (reaction,member,role) =>
-		{
-			if(role.members.has(member.id)) //check if user does not have role
-			{
-				roleCall.removeRole(member,role)
-				.then(newMember => 
-				{
-					if(newMember.roles.size == 2)
-					{
-						if(newMember.roles.has(memberRoleId))
-						{
-							roleCall.removeRole(newMember,newMember.guild.roles.get(memberRoleId));
-						} else {
-							roleCall.addRole(newMember,newMember.guild.roles.get(memberRoleId));
-						}
-					}
-				})
-				.catch(err=>{console.error(err.stack)});
-			}
-		});
+	client.user.setPresence({activity:activity, status: clientStatus.status});
+	console.log(`${client.user.username} has started, with ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds`);
 });
 
 //This event triggers when the bot joins a guild.
