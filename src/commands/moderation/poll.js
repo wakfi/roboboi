@@ -108,6 +108,7 @@ module.exports = {
 									return;
 								}
 								//create filter for message collector
+								//these variable names suck please fix them
 								const filter = (r,a) => {
 									if(a.id == client.user.id) return false;
 									let testButtons = [];
@@ -123,7 +124,7 @@ module.exports = {
 								let cancelled = false;
 								const collector = new PollCollector(pollMsg, filter, {time: duration}); //initialize reaction collector with filter and specified duration
 								const endCollector = message.channel.guild.channels.get(targetChan).createMessageCollector(m => m.author === message.author && (m.content === `${config.prefix}endpoll` || m.content === `${config.prefix}cancelpoll`), {time: duration}); //initialize message collector with filter and specified duration
-								recordFile({'question' : question, 'authorName' : message.author.username, 'authorId' : message.author.id, 'pollMsg' : pollMsg.id, 'responseCount' : responseCount, 'cleanResults' : cleanResults, 'answers' : answers, 'totalVotes' : collector.collected.size, 'voters' : collector.collected.users, 'complete' : false}, `${filename}.json`)();
+								recordFile({'question' : question, 'authorName' : message.author.username, 'authorId' : message.author.id, 'pollMsg' : pollMsg.id, 'responseCount' : responseCount, 'cleanResults' : cleanResults, 'answers' : answers, 'totalVotes' : collector.collected.size, 'voters' : collector.collected.users, 'complete' : false}, `${filename}.json`);
 								console.log(`started poll timeout = ${millisecondsToString(duration)}`);
 								
 								//event handler for message collector, allows realtime updating of results and output file (and poll stop). Currently not supporting updating of results
@@ -146,7 +147,7 @@ module.exports = {
 											))
 										.count;
 									}
-									recordFile({'question' : question, 'authorName' : message.author.username, 'authorId' : message.author.id, 'pollMsg' : pollMsg.id, 'responseCount' : responseCount, 'cleanResults' : cleanResults, 'answers' : answers, 'totalVotes' : collector.collected.size, 'voters' : collector.collected.users, 'complete' : false}, `${filename}.json`)();
+									recordFile({'question' : question, 'authorName' : message.author.username, 'authorId' : message.author.id, 'pollMsg' : pollMsg.id, 'responseCount' : responseCount, 'cleanResults' : cleanResults, 'answers' : answers, 'totalVotes' : collector.collected.size, 'voters' : collector.collected.users, 'complete' : false}, `${filename}.json`);
 								});
 								
 								//event emitted at the end of duration, or if author sends !endpoll command
@@ -183,7 +184,7 @@ module.exports = {
 										pollMsg.unpin(); //unpins, as it is no longer an active poll
 										//if(pinnedSystemMsg.author.id == client.user.id) pinnedSystemMsg.delete();
 										//records final results in file, including completion status. currently not used
-										recordFile({'question' : question, 'authorName' : message.author.username, 'authorId' : message.author.id, 'pollMsg' : pollMsg.id, 'responseCount' : responseCount, 'cleanResults' : cleanResults, 'toSend' : toSend, 'totalVotes' : collected.size, 'voters' : collected.users, 'complete' : true}, `${filename}.json`)();
+										recordFile({'question' : question, 'authorName' : message.author.username, 'authorId' : message.author.id, 'pollMsg' : pollMsg.id, 'responseCount' : responseCount, 'cleanResults' : cleanResults, 'toSend' : toSend, 'totalVotes' : collected.size, 'voters' : collected.users, 'complete' : true}, `${filename}.json`);
 									}
 								});
 							})
