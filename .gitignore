@@ -1,7 +1,8 @@
 #to ignore
-src/util/components/config.json
+src/util/components/token.json
+config.json
+wakfi.js
 poll_results/*.json
-src/roboghost.js
 
 # Node specific ignores
 #

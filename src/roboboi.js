@@ -425,7 +425,7 @@ client.on("message", async message => {
 						+ `**${config.prefix}purge count | <2-99>** - identical to the previous syntax, but using an explicit command form\n`
 						+ `**${config.prefix}purge from | <messageID>** - delete all messages between the most recent message and the provided messageID. Command will fail if the provided message is further than 99 messages from the most recent message\n`
 						+ `**${config.prefix}purge between | <oldestID> | <newestID>** - delete all messages between oldestID and newestID, ***inclusive***. Does not need to be within 99 messages of the most recent message\n`)
-				.addField(`${config.prefix}poll <question>`,`Follow the prompts after that. I can provide a general blueprint of the syntax for all of the prompts if wanted. Note: don't make more than one poll per user without starting it, the syntax hasn't been prepared for that yet`);
+				.addField(`${config.prefix}poll <question> [channel]`,`Follow the prompts after that. I can provide a general blueprint of the syntax for all of the prompts if wanted. Note: don't make more than one poll per user without starting it, the syntax hasn't been prepared for that yet`);
 			}
 			authorReply(message, richEmbed).catch(e=>{});
 		},
