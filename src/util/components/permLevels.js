@@ -43,6 +43,7 @@ const permLevels = [
 			  return false;
 		  }
 	  }
+	},
 
     { level: 5,
       name: "Moderator",

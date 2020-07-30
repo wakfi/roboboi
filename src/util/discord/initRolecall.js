@@ -9,7 +9,7 @@ const yearRoles = new Collection();
 const majorRoles = new Collection();
 const courseRoles = new Collection();
 
-function initRolecall(client,server)
+function initRolecall(client,server,memberRole)
 {
 	return new Promise(async (resolve,reject) =>
 	{
@@ -45,9 +45,9 @@ function initRolecall(client,server)
 								 
 					if(addTheRole)
 					{
-						if(!member.roles.has(memberRoleId))
+						if(!member.roles.has(memberRole))
 						{
-							client.roleCalls[0].addRole(member,member.guild.roles.get(memberRoleId));
+							client.roleCalls[0].addRole(member,member.guild.roles.get(memberRole));
 						}
 					}
 				}
@@ -60,9 +60,9 @@ function initRolecall(client,server)
 					client.roleCalls[1].addRole(member,role)
 					.catch(err=>{console.error(err.stack)});
 					
-					if(!member.roles.has(memberRoleId))
+					if(!member.roles.has(memberRole))
 					{
-						client.roleCalls[1].addRole(member,member.guild.roles.get(memberRoleId));
+						client.roleCalls[1].addRole(member,member.guild.roles.get(memberRole));
 					}
 				}
 			});
@@ -76,11 +76,11 @@ function initRolecall(client,server)
 					{
 						if(newMember.roles.size == 2)
 						{
-							if(newMember.roles.has(memberRoleId))
+							if(newMember.roles.has(memberRole))
 							{
-								client.roleCalls[0].removeRole(newMember,newMember.guild.roles.get(memberRoleId));
+								client.roleCalls[0].removeRole(newMember,newMember.guild.roles.get(memberRole));
 							} else {
-								client.roleCalls[0].addRole(newMember,newMember.guild.roles.get(memberRoleId));
+								client.roleCalls[0].addRole(newMember,newMember.guild.roles.get(memberRole));
 							}
 						}
 					})
@@ -97,11 +97,11 @@ function initRolecall(client,server)
 					{
 						if(newMember.roles.size == 2)
 						{
-							if(newMember.roles.has(memberRoleId))
+							if(newMember.roles.has(memberRole))
 							{
-								client.roleCalls[1].removeRole(newMember,newMember.guild.roles.get(memberRoleId));
+								client.roleCalls[1].removeRole(newMember,newMember.guild.roles.get(memberRole));
 							} else {
-								client.roleCalls[1].addRole(newMember,newMember.guild.roles.get(memberRoleId));
+								client.roleCalls[1].addRole(newMember,newMember.guild.roles.get(memberRole));
 							}
 						}
 					})
