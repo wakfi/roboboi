@@ -1,5 +1,6 @@
 {
-	"roleCallConfig":[
+	"roleCallConfig":
+	[
 		{
 			"roleInputArray" : 
 			[
@@ -27,8 +28,8 @@
 			"guildId" : "673769572804853791",
 			"channelId" : "674870421237268483",
 			"messageId" : "749899221276295169"
-			},
-			{
+		},
+		{
 			"roleInputArray" : 
 			[
 				{"role": "710779925673541663", "emoji": "🤖"},
