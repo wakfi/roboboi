@@ -15,4 +15,4 @@ jobs:
           username: ${{ secrets.USERNAME }}
           port: 22
           key: ${{ secrets.SSHKEY }}
-          script: cd ${{ secrets.PROJECTPATH }} && git pull origin master && pm2 restart roboboi
+          script: cd ${{ secrets.PROJECTPATH }} && git pull origin master && npm i
