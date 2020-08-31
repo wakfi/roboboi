@@ -85,16 +85,15 @@ const config = require(`${process.cwd()}/util/components/config.json`);
 const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
 
 //inputs for the RoleCall objects
-const roleCallConfig = require(`${process.cwd()}/util/components/roleCallConfig.json`);
-const roleCallConfigContinued = require(`${process.cwd()}/util/components/roleCallConfigContinued.json`);
+const {roleCallConfig} = require(`${process.cwd()}/util/components/roleCallConfig.json`);
+const roleLists = require(`${process.cwd()}/util/components/roleLists.json`);
 
 /*
  declare the variables that hold the RoleCall objects. they
  cannot be instantiated here because the client has to login
  first, so they have to be instantiated in .ready (below)
 */
-var roleCall;
-var roleCallContinued;
+const roleCalls = [];
 
 const yearRoles = new Discord.Collection();
 const majorRoles = new Discord.Collection();
@@ -109,103 +108,70 @@ var pollChannelIndex;
 client.once("ready", async () => {
 	const memberRoleId = '674746958170292224';
 	addTimestampLogs();
-	let firstRoleArr = roleCallConfig.roleInputArray;
-	let secondRoleArr = roleCallConfigContinued.roleInputArray;
-	for(let i = 0; i < 5; i++)						{ yearRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
-	for(let i = 5; i < 10; i++)						{ majorRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
-	for(let i = 10; i < firstRoleArr.length; i++)	{ courseRoles.set(firstRoleArr[i].role, client.guilds.get(server).roles.get(firstRoleArr[i].role)) }
-	for(let i = 0; i < secondRoleArr.length; i++)	{ courseRoles.set(secondRoleArr[i].role, client.guilds.get(server).roles.get(secondRoleArr[i].role)) }
-	
+		
 	console.log(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} guilds.`);
 	client.user.setActivity(`${config.prefix}help for commands`);
 	
-	try	{
-		roleCall = new RoleCall(client,roleCallConfig);
-		roleCallContinued = new RoleCall(client,roleCallConfigContinued);
-	} catch(err) {
-		await client.guilds.get(server).channels.get(namedChannels.testing).send(`role call went\n> yikes`);
-		throw err;
-	}
-		
+	const guildRoles = client.guilds.get(server).roles;
+	roleLists.yearRoles.forEach(yearRole => yearRoles.set(yearRole, guildRoles.get(yearRole)));
+	roleLists.majorRoles.forEach(majorRole => majorRoles.set(majorRole, guildRoles.get(majorRole)));
+	roleLists.courseRoles.forEach(courseRole => courseRoles.set(courseRole, guildRoles.get(courseRole)));
 	
-		roleCall.on('roleReactionAdd', (reaction,member,role) =>
-		{
-			if(!role.members.has(member.id)) //check if user already has role
+	roleCallConfig.forEach(async configObject =>
+	{
+		try	{
+			const roleCall = new RoleCall(client,configObject);
+			roleCalls.push(roleCall);
+		
+			roleCall.on('roleReactionAdd', (reaction,member,role) =>
 			{
-				let addTheRole = true;
-				if(yearRoles.has(role.id)) //check if year role
+				if(!role.members.has(member.id)) //check if user already has role
 				{
-					yearRoles.array().map(role => addTheRole = addTheRole && !role.members.has(member.id)); //check if user already has a year role
-				}
-				
-				addTheRole ? roleCall.addRole(member,role).catch(err=>{console.error(err.stack)})	:
-							 reaction.remove(member)												;
-							 
-				if(addTheRole)
-				{
-					if(!member.roles.has(memberRoleId))
+					let addTheRole = true;
+					if(yearRoles.has(role.id)) //check if year role
 					{
-						roleCall.addRole(member,member.guild.roles.get(memberRoleId));
+						yearRoles.array().map(role => addTheRole = addTheRole && !role.members.has(member.id)); //check if user already has a year role
 					}
-				}
-			}
-		});
-
-		roleCallContinued.on('roleReactionAdd', (reaction,member,role) =>
-		{
-			if(!role.members.has(member.id)) //check if user already has role
-			{
-				roleCall.addRole(member,role)
-				.catch(err=>{console.error(err.stack)});
-				
-				if(!member.roles.has(memberRoleId))
-				{
-					roleCall.addRole(member,member.guild.roles.get(memberRoleId));
-				}
-			}
-		});
-
-		roleCall.on('roleReactionRemove', (reaction,member,role) =>
-		{
-			if(role.members.has(member.id)) //check if user does not have role
-			{
-				roleCall.removeRole(member,role)
-				.then(newMember => 
-				{
-					if(newMember.roles.size == 2)
+					
+					addTheRole ? roleCall.addRole(member,role).catch(err=>{console.error(err.stack)})	:
+								 reaction.remove(member)												;
+								 
+					if(addTheRole)
 					{
-						if(newMember.roles.has(memberRoleId))
+						if(!member.roles.has(memberRoleId))
 						{
-							roleCall.removeRole(newMember,newMember.guild.roles.get(memberRoleId));
-						} else {
-							roleCall.addRole(newMember,newMember.guild.roles.get(memberRoleId));
+							roleCall.addRole(member,member.guild.roles.get(memberRoleId));
 						}
 					}
-				})
-				.catch(err=>{console.error(err.stack)});
-			}
-		});
-
-		roleCallContinued.on('roleReactionRemove', (reaction,member,role) =>
-		{
-			if(role.members.has(member.id)) //check if user does not have role
+				}
+			});
+			
+			roleCall.on('roleReactionRemove', (reaction,member,role) =>
 			{
-				roleCall.removeRole(member,role)
-				.then(newMember => 
+				if(role.members.has(member.id)) //check if user does not have role
 				{
-					if(newMember.roles.size == 2)
+					roleCall.removeRole(member,role)
+					.then(newMember => 
 					{
-						if(newMember.roles.has(memberRoleId))
+						if(newMember.roles.size == 2)
 						{
-							roleCall.removeRole(newMember,newMember.guild.roles.get(memberRoleId));
-						} else {
-							roleCall.addRole(newMember,newMember.guild.roles.get(memberRoleId));
+							if(newMember.roles.has(memberRoleId))
+							{
+								roleCall.removeRole(newMember,newMember.guild.roles.get(memberRoleId));
+							} else {
+								roleCall.addRole(newMember,newMember.guild.roles.get(memberRoleId));
+							}
 						}
-					}
-				})
-				.catch(err=>{console.error(err.stack)});
-			}
-		});
+					})
+					.catch(err=>{console.error(err.stack)});
+				}
+			});
+		
+		} catch(err) {
+			await client.guilds.get(server).channels.get(namedChannels.testing).send(`role call went\n> yikes`);
+			throw err;
+		}
+	});
 });
 
 //This event triggers when the bot joins a guild.
@@ -231,6 +197,8 @@ client.on("raw", packet =>
     if (!['MESSAGE_REACTION_ADD', 'MESSAGE_REACTION_REMOVE'].includes(packet.t)) return;
     // Grab the channel to check the message from
     const channel = client.channels.get(packet.d.channel_id);
+	//this is #welcome
+	if(channel.id == 674870421237268483) return;
     // There's no need to emit if the message is cached, because the event will fire anyway for that|| wrong yes there is
     //if (channel.messages.has(packet.d.message_id)) return;
     // Since we have confirmed the message is not cached, let's fetch it
@@ -243,8 +211,8 @@ client.on("raw", packet =>
         // This gives us the reaction we need to emit the event properly, in top of the message object
         const reaction = message.reactions.get(emoji);
         // Adds the currently reacting user to the reaction's users collection.
-        if (reaction) reaction.users.set(packet.d.user_id, user);
-		else return console.error(`Could not retrieve reaction for emoji ${emoji}`);
+        if(!reaction) return console.error(`Could not retrieve reaction for emoji ${emoji}`);
+		reaction.users.set(packet.d.user_id, user);
         // Check which type of event it is before emitting
         if (packet.t === 'MESSAGE_REACTION_ADD') {
             messageReactionAdd(reaction, user);
