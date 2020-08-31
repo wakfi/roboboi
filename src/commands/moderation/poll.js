@@ -1,3 +1,4 @@
+const {prefix} = require(`${process.cwd()}/util/components/config.json`);
 const recordFile = require(`${process.cwd()}/util/general/recordFile.js`);
 const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
 
@@ -13,28 +14,25 @@ module.exports = {
 	async execute(message, args) {
 		let duration = 86400000; //default duration is 24 hours
 		let targetChan = namedChannels.polls; //defualt target channel is the general chat channel
-		if(message.member.highestRole.calculatedPosition <= message.guild.members.get(client.user.id).highestRole.calculatedPosition)
-			return message.author.send(`Sorry, you don't have permissions to use this!`); //verify permission; must be Tutor, TA, Mod, or Admin
-		
 		if(message.mentions.channels.size > 0) //optional target channel specicification other than sniff-discussion
 		{
 			targetChan = message.mentions.channels.first().id;
 			args.splice(args.indexOf(message.mentions.channels.first().name),1);
 		}
 		console.log(`target channel: ${targetChan}`);
-		const question = args.join(" "); //create const question. removed by this point are [config.prefix][poll] ... <targetChan>, so all thats left is the question
-		message.reply(`How many response options? (${config.prefix}amount #)`); //request amount of options to wait for, using prefix to specialize message
-		message.channel.awaitMessages(m => m.content.startsWith(config.prefix) && m.content.replace(`${config.prefix}option`, '') !== '' && m.author === message.author, {maxMatches: 1, time: 90000, errors: ['time'] })
+		const question = args.join(" "); //create const question. removed by this point are [prefix][poll] ... <targetChan>, so all thats left is the question
+		message.reply(`How many response options? (${prefix}amount #)`); //request amount of options to wait for, using prefix to specialize message
+		message.channel.awaitMessages(m => m.content.startsWith(prefix) && m.content.replace(`${prefix}amount`, '') !== '' && m.author === message.author, {maxMatches: 1, time: 90000, errors: ['time'] })
 		.then(total => { //this is the message waiter, which is the primary driver of this function. it is only waiting for the author of this poll (but others can be running at the same time for other authors)
 			let response = total.array()[0];
-			const ammount = response.content.slice(config.prefix.length).trim().split(/ +/g);
+			const ammount = response.content.slice(prefix.length).trim().split(/ +/g);
 			ammount.shift().toLowerCase();
 			const responseCount = +ammount[0]; //create a usable number
 			if(!responseCount || responseCount < 2 || responseCount > 8)
 				return message.reply(`Number from 2-8 must be provided. Poll request terminated.`); //followed a strict-build design, if the syntax is wrong at any point it terminates, so that it doesn't send
-			message.reply(`Specify options in individual messages (${config.prefix}option <option>)`); //would like to rewrite with savable promises eventually, so that polls can be saved, edited, sent later, etc
+			message.reply(`Specify options in individual messages (${prefix}option <option>)`); //would like to rewrite with savable promises eventually, so that polls can be saved, edited, sent later, etc
 			let buttons = [];
-			message.channel.awaitMessages(n => n.content.startsWith(`${config.prefix}option `)  && n.author === message.author, {maxMatches: responseCount, time: 300000, errors: ['time'] })
+			message.channel.awaitMessages(n => n.content.startsWith(`${prefix}option `)  && n.author === message.author, {maxMatches: responseCount, time: 300000, errors: ['time'] })
 			.then(options => { //another user input, another message waiter
 				message.channel.send(`*Poll by ${message.member.displayName}*`) //we have the input we need, now its time to start generating the embed
 				.then(poll => { //an easy way to use an embed is to send a message and then swap the embed in with an edit
@@ -59,13 +57,13 @@ module.exports = {
 						.setTimestamp(new Date()) //timestamp for posterity
 						.addField(header, answers); //adds the actual poll to the embed. added fields are (key, value) with the key treated as a header/title, so i used the question as the 'key' and the options as the 'value'
 					poll.edit("", edit); //edits the embed into the message so that the user can see the results
-					message.reply(`Is this correct? (${config.prefix}y or ${config.prefix}n)\nWarning: Once confirmed poll must be manually cancelled with ${config.prefix}endpoll`);
-					message.channel.awaitMessages(mn => mn.content.startsWith(config.prefix) && mn.author === message.author, {maxMatches: 1, time: 180000, errors: ['time']})
+					message.reply(`Is this correct? (${prefix}y or ${prefix}n)\nWarning: Once confirmed poll must be manually cancelled with ${prefix}endpoll`);
+					message.channel.awaitMessages(mn => mn.content.startsWith(prefix) && mn.author === message.author, {maxMatches: 1, time: 180000, errors: ['time']})
 					.then(conf => { //awaits confirmation. this is the final chance to cancel, because if they say yes then supposedly this is what they want
-						if(conf.array()[0].content.slice(config.prefix.length).trim() === "y")
+						if(conf.array()[0].content.slice(prefix.length).trim() === "y")
 						{//on yes
-							message.reply(`Poll creation complete. Poll will be saved for 24 hours. Type ${config.prefix}pollstart to begin the poll. You can type ${config.prefix}polltime to change the duration of the poll; the default duration is 24 hours`);
-							const polltimeRegex = new RegExp(`^${config.prefix}polltime`);
+							message.reply(`Poll creation complete. Poll will be saved for 24 hours. Type ${prefix}pollstart to begin the poll. You can type ${prefix}polltime to change the duration of the poll; the default duration is 24 hours`);
+							const polltimeRegex = new RegExp(`^${prefix}polltime`);
 							const timeCollector = message.channel.createMessageCollector(mno => mno.author === message.author && polltimeRegex.test(mno.content), {time: duration, errors: ['time'] });
 							timeCollector.on('collect', msg => 
 							{
@@ -83,7 +81,7 @@ module.exports = {
 									selfDeleteReply(message, `An error occured with that time input. The previous time ${millisecondsToString(duration)} (${duration}) will be used`, '25s');
 								}
 							});
-							const pollstartRegex = new RegExp(`^${config.prefix}pollstart`);
+							const pollstartRegex = new RegExp(`^${prefix}pollstart`);
 							message.channel.awaitMessages(mno => mno.author === message.author && pollstartRegex.test(mno.content), {maxMatches: 1, time: duration, errors: ['time'] })
 							.then(async dur => { //async keyword is required in the function declaration to use await keyword
 								timeCollector.stop();
@@ -123,14 +121,14 @@ module.exports = {
 								} 
 								let cancelled = false;
 								const collector = new PollCollector(pollMsg, filter, {time: duration}); //initialize reaction collector with filter and specified duration
-								const endCollector = message.channel.guild.channels.get(targetChan).createMessageCollector(m => m.author === message.author && (m.content === `${config.prefix}endpoll` || m.content === `${config.prefix}cancelpoll`), {time: duration}); //initialize message collector with filter and specified duration
+								const endCollector = message.channel.guild.channels.get(targetChan).createMessageCollector(m => m.author === message.author && (m.content === `${prefix}endpoll` || m.content === `${prefix}cancelpoll`), {time: duration}); //initialize message collector with filter and specified duration
 								recordFile({'question' : question, 'authorName' : message.author.username, 'authorId' : message.author.id, 'pollMsg' : pollMsg.id, 'responseCount' : responseCount, 'cleanResults' : cleanResults, 'answers' : answers, 'totalVotes' : collector.collected.size, 'voters' : collector.collected.users, 'complete' : false}, `${filename}.json`);
 								console.log(`started poll timeout = ${millisecondsToString(duration)}`);
 								
 								//event handler for message collector, allows realtime updating of results and output file (and poll stop). Currently not supporting updating of results
 								endCollector.on('collect', msg => 
 								{ 
-									if(msg.content === `${config.prefix}cancelpoll`) cancelled = true;
+									if(msg.content === `${prefix}cancelpoll`) cancelled = true;
 									collector.stop();
 									endCollector.stop();
 								});
@@ -189,7 +187,7 @@ module.exports = {
 								});
 							})
 							.catch(e => console.log(e));
-						} else if(conf.array()[0].content.slice(config.prefix.length).trim() === "n") { //on no
+						} else if(conf.array()[0].content.slice(prefix.length).trim() === "n") { //on no
 							message.reply(`Poll terminated`);
 							poll.delete(); //delete poll embed message
 							return;

@@ -1,3 +1,4 @@
+const {server} = require(`${process.cwd()}/util/components/config.json`);
 const authorReply = require(`${process.cwd()}/util/reply/authorReply.js`);
 const selfDeleteReply = require(`${process.cwd()}/util/reply/selfDeleteReply.js`);
 const {MessageEmbed} = require(`${process.cwd()}/util/discord/structs.js`);
@@ -20,12 +21,12 @@ module.exports = {
 		}
 		if(args.length == 0) return selfDeleteReply(message, `you cannot submit an empty message`);
 		const embed = new MessageEmbed()
-			.setAuthor(message.author.username, message.author.avatarURL)
+			.setAuthor(message.author.username, message.author.displayAvatarURL())
 			.setDescription(`${args.join(' ')}\n${message.author}`)
 			.setColor(0xFF00FF)
 			.setTimestamp(new Date())
 			.setFooter(`Submitted`);
-		const newMail = await client.guilds.get(server).channels.get(modmail).send(embed)
+		const newMail = await message.client.guilds.cache.get(server).channels.cache.get(modmail).send(embed)
 		.catch(err => {return selfDeleteReply(message, `An error has occured. Your message could not be submitted. Please try again later`, `25s`)});
 		await newMail.react(`🗃`);
 		authorReply(message, `${message.author}, thank you for using Mod Mail! Your submission has been successfully received. A member of the moderation team will review your submission as soon as possible`).catch(e=>{});

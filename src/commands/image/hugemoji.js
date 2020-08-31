@@ -1,10 +1,10 @@
 const nf = require('node-fetch');
-//const rp = (query) => got(query, {resolveBodyOnly: true}); //originally use request-promise, now deprecated. This lambda is for backwards compatability
-const rp = (query) => nf(query);
+const rp = async (query) => await (await nf(query)).text(); //originally used request-promise, now deprecated. This lambda is for backwards compatability
 const emojiUnicode = require('emoji-unicode');
-var svgToPng = require('svg-to-png');
-var path = require('path');
-var fs = require('fs-extra');
+const svgToPng = require('svg-to-png');
+const path = require('path');
+const fs = require('fs-extra');
+const urlSvgRegex = new RegExp("https?://[a-zA-Z0-9._~:/?#\\[\\]@!$&'()*+,;=%-]+\\.svg");
 
 /* license for emojilib.json adapted from another source
 The MIT License (MIT)
@@ -31,18 +31,53 @@ SOFTWARE.
 */
 const emojiMap = require(`${process.cwd()}/util/components/emojilib.json`);
 
+const hugify = async (message,vectorImage,imageName,vectorName) =>
+{
+	if(/width|height/.test(vectorImage))
+	{
+		vectorImage = /(<svg.*width=")\d+(" height=")\d+(".*<\/svg>)/s.exec(vectorImage).slice(1).join('722');
+	}
+	if(imageName === undefined) imageName = 'image';
+	if(vectorName === undefined) vectorName = imageName;
+	const picPath = path.normalize(`${process.cwd()}/../file_dump/${vectorName}`);
+	await fs.outputFile(`${picPath}.svg`,vectorImage);
+	try {
+		//convert from svg to png
+		await svgToPng.convert(`${picPath}.svg`,path.normalize(`${process.cwd()}/../file_dump`),{defaultWidth:722,defaultHeight:722},{type:"image/png"});
+		await message.channel.send({files: 
+			[{attachment: `${picPath}.png`,
+			name: `${imageName}.png`}]
+		}).catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err}`)});
+		//cleanup created png
+		await fs.remove(`${picPath}.png`)
+		.catch(err => {
+			console.error(err)
+		});
+	} catch(e) {
+		console.error(e.stack);
+	}
+	//delete svg regardless of png success
+	await fs.remove(`${picPath}.svg`)
+	.catch(err => {
+		console.error(err)
+	});
+};
+
 module.exports = {
 	name: 'hugemoji',
 	description: 'create a real big version of an emoji',
 	category: 'image',
 	usage: ['<emoji>'],
-	aliases: ['hugeemoji'],
+	aliases: ['hugeemoji','hugify','hugeify'],
 	permLevel: 'User',
 	args: true,
 	async execute(message, args) {
 		const messageElement = args[0];
-		if(messageElement.includes(`>`) && messageElement.includes(`:`))
+		if(urlSvgRegex.test(messageElement))
 		{
+			const svgToHugify = await rp(messageElement);
+			await hugify(message, svgToHugify);
+		} else if(messageElement.includes(`>`) && messageElement.includes(`:`)) {
 			//emoji is a custom server emoji
 			const discordEmojisUri = `https://cdn.discordapp.com/emojis/`;
 			const splitEmoji = messageElement.split(`:`);
@@ -84,33 +119,16 @@ module.exports = {
 					}
 				}
 			}
-			//this is a syntax trick to quickly see if one of the attempts succeeded before continueing
+			//check if one of the attempts succeeded before continueing
 			if(githubResponseA) 
 			{
-				//emoji is a unicode emoji 
+				//confirmed emoji is a unicode emoji 
 				const githubResponseB = await rp(githubResponseA.split(`<iframe class="render-viewer " src="`)[1].split('"')[0]);
 				//the order here is: get svg image from remote (save local), convert to png (save local), send png, delete local svg and png
 				const emojiName = emojiMap[messageElement][0] || emojiInUnicode;
-				const picFolder = `${process.cwd()}/file_dump`;
-				await fs.ensureDir(picFolder).catch(e=>{return console.error(e.stack)});
 				//data for vector image of emoji
 				const emojiSvg = await rp(githubResponseB.split('data-image  = "')[1].split('"')[0]);
-				await fs.outputFile(`${picFolder}/${emojiInUnicode}.svg`,emojiSvg);
-				//convert from svg to png
-				await svgToPng.convert(path.join(picFolder,`${emojiInUnicode}.svg`), picFolder, {defaultWidth:722,defaultHeight:722},{type:"image/png"});
-				await message.channel.send({files: 
-					[{attachment: `${picFolder}/${emojiInUnicode}.png`,
-					name: `${emojiName}.png`}]
-				}).catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err.stack}`)});
-				//cleanup created files
-				await fs.remove(`${picFolder}/${emojiInUnicode}.svg`)
-				.catch(err => {
-					console.error(err.stack)
-				});
-				await fs.remove(`${picFolder}/${emojiInUnicode}.png`)
-				.catch(err => {
-					console.error(err.stack)
-				});
+				await hugify(message, emojiSvg, emojiName, emojiInUnicode);
 			}
 		}
 	}

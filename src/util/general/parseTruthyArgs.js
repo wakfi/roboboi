@@ -10,7 +10,7 @@ function parseTruthyArgs(args,keys,flags,options)
 	if(keys.length != flags.length) throw new RangeError(`must have same number of keys and flags`);
 	const obj = {};
 	const allMatches = [...args.join(' ').matchAll(flagRegex)];
-	const found = options.singleFlag || options.disableAutoPrefix ? 
+	const found = options.singleFlag || options.disableAutoPrefix ? //something is wrong here
 				  allMatches.join('')
 						    .split(flagPrefix) 
 							:
@@ -27,7 +27,7 @@ function parseTruthyArgs(args,keys,flags,options)
 		{
 			const indexKey = found.indexOf(flag);
 			found.splice(indexKey,1);
-			args.splice(args.indexOf(key),1);
+			args.splice(args.indexOf(flag),1);
 			Object.defineProperty(obj, key, {value: true, writable: false, enumerable: true, configurable: true});
 			count++;
 		} else {
