@@ -1,8 +1,8 @@
 ---
-name: 🐞 Bug Report
+name: "\U0001F41E Bug Report"
 about: Found something that's not working correctly?
 title: ''
-labels: 'bug report'
+labels: bug report
 assignees: ''
 
 ---
@@ -24,4 +24,3 @@ Step 4:
 ## Actual Result (what is the *current* behavior?)
 
 ## Current Bot Version (run the `info` command and look at the footer)
-
