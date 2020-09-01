@@ -123,24 +123,28 @@ client.once("ready", async () => {
 			const roleCall = new RoleCall(client,configObject);
 			roleCalls.push(roleCall);
 		
-			roleCall.on('roleReactionAdd', (reaction,member,role) =>
+			roleCall.on('roleReactionAdd', async (reaction,member,role) =>
 			{
 				if(!role.members.has(member.id)) //check if user already has role
 				{
-					let addTheRole = true;
-					if(yearRoles.has(role.id)) //check if year role
+					await roleCall.addRole(member,role).catch(err=>{console.error(err.stack)});
+					if(!yearRoles.has(role.id)) return; //check if year role
+					let hasAYearRole = true;
+					let yearRole = null;
+					while(hasAYearRole)
 					{
-						yearRoles.array().map(role => addTheRole = addTheRole && !role.members.has(member.id)); //check if user already has a year role
-					}
-					
-					addTheRole ? roleCall.addRole(member,role).catch(err=>{console.error(err.stack)})	:
-								 reaction.remove(member)												;
-								 
-					if(addTheRole)
-					{
-						if(!member.roles.has(memberRoleId))
+						hasAYearRole = !yearRoles.array().every(otherRole => 
 						{
-							roleCall.addRole(member,member.guild.roles.get(memberRoleId));
+							yearRole = otherRole;
+							return !otherRole.members.has(member.id) || otherRole.id == role.id;
+						}); //check if user already has a year role
+						if(hasAYearRole)
+						{
+							try{
+								await roleCall.removeReaction(member, yearRole);
+							} catch(e) {
+								console.error(e.stack);
+							}
 						}
 					}
 				}
