@@ -81,6 +81,7 @@ function addTimestampLogs()
 
 //config information for the bot
 const server = "673769572804853791"; //guild ID
+const memberRoleId = '674746958170292224'; //Computer Science Student role ID
 const config = require(`${process.cwd()}/util/components/config.json`);
 const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
 
@@ -106,7 +107,6 @@ var pollChannelIndex;
 
 //I call this .ready, even though there isn't actually a .ready anywhere
 client.once("ready", async () => {
-	const memberRoleId = '674746958170292224';
 	addTimestampLogs();
 		
 	console.log(`Bot has started, with ${client.users.size} users, in ${client.channels.size} channels of ${client.guilds.size} guilds.`);
@@ -127,9 +127,10 @@ client.once("ready", async () => {
 			{
 				if(!role.members.has(member.id)) //check if user already has role
 				{
+					const addMemberRole = !member.roles.has(memberRoleId);
 					await roleCall.addRole(member,role).catch(err=>{console.error(err.stack)});
-					if(!yearRoles.has(role.id)) return; //check if year role
-					let hasAYearRole = true;
+					if(!addMemberRole && !yearRoles.has(role.id)) return; //check if year role
+					let hasAYearRole = !addMemberRole;
 					let yearRole = null;
 					while(hasAYearRole)
 					{
@@ -147,6 +148,13 @@ client.once("ready", async () => {
 							}
 						}
 					}
+					if(addMemberRole)
+					{
+						if(!member.roles.has(memberRoleId))
+						{
+							roleCall.addRole(member,member.guild.roles.get(memberRoleId));
+						}
+					}
 				}
 			});
 			
@@ -157,13 +165,12 @@ client.once("ready", async () => {
 					roleCall.removeRole(member,role)
 					.then(newMember => 
 					{
-						if(newMember.roles.size == 2)
+						const removeMemberRole = ![...roleLists.yearRoles, ...roleLists.majorRoles, ...roleLists.courseRoles].some(roleID => newMember.roles.some(memberRole => memberRole.id == roleID));
+						if(removeMemberRole)
 						{
 							if(newMember.roles.has(memberRoleId))
 							{
 								roleCall.removeRole(newMember,newMember.guild.roles.get(memberRoleId));
-							} else {
-								roleCall.addRole(newMember,newMember.guild.roles.get(memberRoleId));
 							}
 						}
 					})
