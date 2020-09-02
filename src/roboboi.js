@@ -617,6 +617,10 @@ client.on("message", async message => {
 				args.splice(args.indexOf(message.mentions.channels.first().name),1);
 			}
 			const question = args.join(" "); //create const question. removed by this point are [config.prefix][poll] ... <targetChan>, so all thats left is the question
+			const header =  `**${question}${!question.includes('?')?'?':''}**`; //this is the line I was writing when I learned the ternary operator, and I adore it
+			if(header.length > 256) 
+				return cleanReply(message, `Question must be 251 characters or less`);
+			
 			message.reply(`How many response options? (${config.prefix}amount #)`); //request amount of options to wait for, using prefix to specialize message
 			message.channel.awaitMessages(m => m.content.startsWith(config.prefix) && m.content.replace(`${config.prefix}option`, '') !== '' && m.author === message.author, {maxMatches: 1, time: 90000, errors: ['time'] })
 			.then(total => { //this is the message waiter, which is the primary driver of this function. it is only waiting for the author of this poll (but others can be running at the same time for other authors)
@@ -632,7 +636,6 @@ client.on("message", async message => {
 				.then(options => { //another user input, another message waiter
 					message.channel.send(`*Poll by ${message.member.displayName}*`) //we have the input we need, now its time to start generating the embed
 					.then(poll => { //an easy way to use an embed is to send a message and then swap the embed in with an edit
-						let header =  `**Question: ${question}${!question.includes('?')?'?':''}**`; //this is the line I was writing when I learned the ternary operator, and I adore it
 						let answers = `Choices:`;
 						for(let i = 0; i < options.size; i++) //writes out the choices into ${answers} by appending them one by one
 						{
