@@ -616,7 +616,6 @@ client.on("message", async message => {
 				targetChan = message.mentions.channels.first().id;
 				args.splice(args.indexOf(message.mentions.channels.first().name),1);
 			}
-			console.log(`target channel: ${targetChan}`);
 			const question = args.join(" "); //create const question. removed by this point are [config.prefix][poll] ... <targetChan>, so all thats left is the question
 			message.reply(`How many response options? (${config.prefix}amount #)`); //request amount of options to wait for, using prefix to specialize message
 			message.channel.awaitMessages(m => m.content.startsWith(config.prefix) && m.content.replace(`${config.prefix}option`, '') !== '' && m.author === message.author, {maxMatches: 1, time: 90000, errors: ['time'] })
@@ -651,7 +650,7 @@ client.on("message", async message => {
 							.setAuthor(message.member.displayName, message.author.avatarURL) //author is the poll authors name and avatar, to show who wrote it
 							.setColor(0xFF00FF) //my signiture FF00FF pink
 							.setFooter(foot, client.user.avatarURL) //footer is the voting instruction and Sniff Bot's avatar
-							.setTimestamp(new Date()) //timestamp for posterity
+							.setTimestamp(new Date(Date.now() + duration)) //timestamp for posterity
 							.addField(header, answers); //adds the actual poll to the embed. added fields are (key, value) with the key treated as a header/title, so i used the question as the 'key' and the options as the 'value'
 						poll.edit("", edit); //edits the embed into the message so that the user can see the results
 						message.reply(`Is this correct? (${config.prefix}y or ${config.prefix}n)\nWarning: Once confirmed poll must be manually cancelled with ${config.prefix}endpoll`);
@@ -662,7 +661,7 @@ client.on("message", async message => {
 								message.reply(`Poll creation complete. Poll will be saved for 24 hours. Type ${config.prefix}pollstart to begin the poll. You can type ${config.prefix}polltime to change the duration of the poll; the default duration is 24 hours`);
 								const polltimeRegex = new RegExp(`^${config.prefix}polltime`);
 								const timeCollector = message.channel.createMessageCollector(mno => mno.author === message.author && polltimeRegex.test(mno.content), {time: duration, errors: ['time'] });
-								timeCollector.on('collect', msg => 
+								timeCollector.on('collect', async msg => 
 								{
 									const life = msg.content.trim().split(/ +/g);
 									life.shift(); //remove command text
@@ -671,17 +670,23 @@ client.on("message", async message => {
 									if(!isNaN(parsedTime)) //check if there was a time given, else it stays default
 									{
 										console.log(`setting time to ${timeInput} which is ${parsedTime}`);
-										message.channel.send(`Duration changed to \`${timeInput}\` which is \`${parsedTime}\``);
 										duration = parsedTime;
+										edit.setTimestamp(new Date(Date.now() + duration));
+										await poll.delete();
+										poll = await poll.channel.send(edit);
+										await message.channel.send(`Duration changed to \`${timeInput}\` which is \`${parsedTime}\``);
 									} else { 
 										console.log(`using previous time ${duration}`);
 										selfDeleteReply(message, `An error occured with that time input. The previous time ${millisecondsToString(duration)} (${duration}) will be used`, '25s');
 									}
 								});
+								let cancelCollector;
 								const pollstartRegex = new RegExp(`^${config.prefix}pollstart`);
-								message.channel.awaitMessages(mno => mno.author === message.author && pollstartRegex.test(mno.content), {maxMatches: 1, time: duration, errors: ['time'] })
-								.then(async dur => { //async keyword is required in the function declaration to use await keyword
+								const startCollector = message.channel.createMessageCollector(mno => mno.author === message.author && pollstartRegex.test(mno.content), {time: duration, errors: ['time'] });
+								startCollector.on('collect', async msg => 
+								{
 									timeCollector.stop();
+									cancelCollector.stop();
 									const filename = path.normalize(`${process.cwd()}/../poll_results/pollresult_${message.id}`); //initalize filename & path
 									let pinnedSystemMsg = null;
 									let pollMsg = await message.guild.channels.get(targetChan).send(edit).catch(e => {console.error(e)}); //send copy of poll message to targetChan
@@ -781,8 +786,16 @@ client.on("message", async message => {
 											recordFile({'question' : question, 'authorName' : message.author.username, 'authorId' : message.author.id, 'pollMsg' : pollMsg.id, 'responseCount' : responseCount, 'cleanResults' : cleanResults, 'toSend' : toSend, 'totalVotes' : collected.size, 'voters' : collected.users, 'complete' : true}, `${filename}.json`)();
 										}
 									});
-								})
-								.catch(e => console.log(e));
+								});
+								const pollcancelRegex = new RegExp(`^${config.prefix}pollcancel`);
+								cancelCollector = message.channel.createMessageCollector(mno => mno.author === message.author && pollcancelRegex.test(mno.content), {time: duration, errors: ['time'] });
+								cancelCollector.on('collect', msg => 
+								{
+									timeCollector.stop();
+									startCollector.stop();
+									poll.delete();
+									selfDeleteReply(message, `Poll cancelled`);
+								});
 							} else if(conf.array()[0].content.slice(config.prefix.length).trim() === "n") { //on no
 								message.reply(`Poll terminated`);
 								poll.delete(); //delete poll embed message
