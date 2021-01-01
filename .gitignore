@@ -1,5 +1,5 @@
 #to ignore
-src/util/components/token.json
+token.json
 config.json
 wakfi.js
 poll_results/*.json
