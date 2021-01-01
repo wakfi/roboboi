@@ -48,7 +48,7 @@ client.roleCalls = [];
 //I call this .ready, even though there isn't actually a .ready anywhere
 client.once('ready', async () => 
 {
-	initRolecall(client,server,memberRole);
+	await initRolecall(client, server, memberRole);
 	addTimestampLogs();
 	client.user.setPresence({activity:activity, status: clientStatus.status});
 	console.log(`${client.user.username} has started, with ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds`);
@@ -74,27 +74,30 @@ client.on("guildMemberRemove", member => {}); //nothing
 client.on("raw", async packet => 
 {
 	// We don't want this to run on unrelated packets
-    if (!['MESSAGE_REACTION_ADD', 'MESSAGE_REACTION_REMOVE'].includes(packet.t)) return;
-    // Grab the channel to check the message from
-    const channel = await client.channels.fetch(packet.d.channel_id);
-    // There's no need to emit if the message is cached, because the event will fire anyway for that|| wrong yes there is
-    //if (channel.messages.has(packet.d.message_id)) return;
-    // Since we have confirmed the message is not cached, let's fetch it
-    const message = await channel.messages.fetch(packet.d.message_id);
-	const user = await client.users.fetch(packet.d.user_id);
-	//if user is a bot, stop now. 
-	if(user.bot) return;
+	const data = packet.d;
+    if (!data || !data.emoji) return;
+    // Grab the channel the message is from
+    const channel = await client.channels.fetch(data.channel_id);
+	const messageWasCached = channel.messages.cache.has(packet.d.message_id);
+    // Fetches & resolves with message if not cached or message in cache is a partial, otherwise resolves with cached message
+    const message = await channel.messages.fetch(data.message_id);
 	// Emojis can have identifiers of name:id format, so we have to account for that case as well
-	const emoji = packet.d.emoji.id ? `${packet.d.emoji.name}:${packet.d.emoji.id}` : packet.d.emoji.name;
+	const emoji = data.emoji.id ? `${data.emoji.id}` : data.emoji.name;
 	// This gives us the reaction we need to emit the event properly, in top of the message object
 	const reaction = message.reactions.cache.get(emoji);
-	// Adds the currently reacting user to the reaction's users collection.
-	if (reaction) reaction.users.cache.set(packet.d.user_id, user);
-	else return console.error(`Could not retrieve reaction for emoji ${emoji}`);
-	// Check which type of event it is before emitting
-	if (packet.t === 'MESSAGE_REACTION_ADD') {
+	if(!reaction) return;
+	// Fetch and verify user
+	const user = await message.client.users.fetch(packet.d.user_id);
+	if(!user || user.bot) return;
+	// Check which type of event it is to select callback
+	if (packet.t === 'MESSAGE_REACTION_ADD') 
+	{
+		// Adds the currently reacting user to the reaction's ReactionUserManager
+		if(!messageWasCached) reaction._add(user);
 		messageReactionAdd(reaction, user);
-	} else if (packet.t === 'MESSAGE_REACTION_REMOVE') {
+	} else if(packet.t === 'MESSAGE_REACTION_REMOVE') {
+		// Removes the currently reacting user from the reaction's ReactionUserManager
+		if(!messageWasCached) reaction._remove(user);
 		messageReactionRemove(reaction, user);
 	}
 });
