@@ -3,8 +3,8 @@ const {Collection} = require(`${process.cwd()}/util/discord/structs.js`);
 const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
 
 //inputs for the RoleCall objects
-const roleCallConfig = require(`${process.cwd()}/util/components/roleCallConfig.json`);
-const roleCallConfigContinued = require(`${process.cwd()}/util/components/roleCallConfigContinued.json`);
+const {roleCallConfigArray} = require(`${process.cwd()}/util/components/roleCallConfig.json`);
+const roleLists = require(`${process.cwd()}/util/components/roleLists.json`);
 
 const yearRoles = new Collection();
 const majorRoles = new Collection();
@@ -14,101 +14,77 @@ function initRolecall(client,server,memberRole)
 {
 	return new Promise(async (resolve,reject) =>
 	{
-		let firstRoleArr = roleCallConfig.roleInputArray;
-		let secondRoleArr = roleCallConfigContinued.roleInputArray;
-		for(let i = 0; i < 5; i++)						{ yearRoles.set(firstRoleArr[i].role, client.guilds.cache.get(server).roles.cache.get(firstRoleArr[i].role)) }
-		for(let i = 5; i < 10; i++)						{ majorRoles.set(firstRoleArr[i].role, client.guilds.cache.get(server).roles.cache.get(firstRoleArr[i].role)) }
-		for(let i = 10; i < firstRoleArr.length; i++)	{ courseRoles.set(firstRoleArr[i].role, client.guilds.cache.get(server).roles.cache.get(firstRoleArr[i].role)) }
-		for(let i = 0; i < secondRoleArr.length; i++)	{ courseRoles.set(secondRoleArr[i].role, client.guilds.cache.get(server).roles.cache.get(secondRoleArr[i].role)) }
-		
-		
-		try	{
-			client.roleCalls.push(new RoleCall(client,roleCallConfig));
-			client.roleCalls.push(new RoleCall(client,roleCallConfigContinued));
-		} catch(err) {
-			await client.guilds.cache.get(server).channels.cache.get(namedChannels.testing).send(`role call went\n> yikes`);
-			reject(err);
-			return;
-		}	
-		
-			client.roleCalls[0].on('roleReactionAdd', (reaction,member,role) =>
-			{
-				if(!role.members.has(member.id)) //check if user already has role
+		const guildRoles = client.guilds.resolve(server).roles.cache;
+		roleLists.yearRoles.forEach(yearRole => yearRoles.set(yearRole, guildRoles.get(yearRole)));
+		roleLists.majorRoles.forEach(majorRole => majorRoles.set(majorRole, guildRoles.get(majorRole)));
+		roleLists.courseRoles.forEach(courseRole => courseRoles.set(courseRole, guildRoles.get(courseRole)));		
+		roleCallConfigArray.forEach(async configObject =>
+		{
+			try	{
+				const roleCall = new RoleCall(client,configObject);
+				client.roleCalls.push(roleCall);
+				
+				roleCall.on('roleReactionAdd', async (reaction,member,role) =>
 				{
-					let addTheRole = true;
-					if(yearRoles.has(role.id)) //check if year role
+					if(!role.members.has(member.id)) //check if user already has role
 					{
-						yearRoles.array().map(role => addTheRole = addTheRole && !role.members.has(member.id)); //check if user already has a year role
-					}
-					
-					addTheRole ? client.roleCalls[0].addRole(member,role).catch(err=>{console.error(err.stack)})	:
-								 reaction.remove(member)												;
-								 
-					if(addTheRole)
-					{
-						if(!member.roles.cache.has(memberRole))
+						const addMemberRole = !member.roles.cache.has(memberRole);
+						await roleCall.addRole(member,role).catch(err=>{console.error(err.stack)});
+						if(!addMemberRole && !yearRoles.has(role.id)) return; //check if year role
+						let hasAYearRole = !addMemberRole;
+						let yearRole = null;
+						while(hasAYearRole)
 						{
-							client.roleCalls[0].addRole(member,member.guild.roles.cache.get(memberRole));
-						}
-					}
-				}
-			});
-
-			client.roleCalls[1].on('roleReactionAdd', (reaction,member,role) =>
-			{
-				if(!role.members.has(member.id)) //check if user already has role
-				{
-					client.roleCalls[1].addRole(member,role)
-					.catch(err=>{console.error(err.stack)});
-					
-					if(!member.roles.cache.has(memberRole))
-					{
-						client.roleCalls[1].addRole(member,member.guild.roles.cache.get(memberRole));
-					}
-				}
-			});
-
-			client.roleCalls[0].on('roleReactionRemove', (reaction,member,role) =>
-			{
-				if(role.members.has(member.id)) //check if user does not have role
-				{
-					client.roleCalls[0].removeRole(member,role)
-					.then(newMember => 
-					{
-						if(newMember.roles.cache.size == 2)
-						{
-							if(newMember.roles.cache.has(memberRole))
+							hasAYearRole = !yearRoles.every(otherRole => 
 							{
-								client.roleCalls[0].removeRole(newMember,newMember.guild.roles.cache.get(memberRole));
-							} else {
-								client.roleCalls[0].addRole(newMember,newMember.guild.roles.cache.get(memberRole));
+								yearRole = otherRole;
+								return !otherRole.members.has(member.id) || otherRole.id == role.id;
+							}); //check if user already has a year role
+							if(hasAYearRole)
+							{
+								try{
+									await roleCall.removeReaction(member, yearRole);
+								} catch(e) {
+									console.error(e.stack);
+								}
 							}
 						}
-					})
-					.catch(err=>{console.error(err.stack)});
-				}
-			});
-
-			client.roleCalls[1].on('roleReactionRemove', (reaction,member,role) =>
-			{
-				if(role.members.has(member.id)) //check if user does not have role
-				{
-					client.roleCalls[1].removeRole(member,role)
-					.then(newMember => 
-					{
-						if(newMember.roles.cache.size == 2)
+						if(addMemberRole)
 						{
-							if(newMember.roles.cache.has(memberRole))
+							if(!member.roles.cache.has(memberRole))
 							{
-								client.roleCalls[1].removeRole(newMember,newMember.guild.roles.cache.get(memberRole));
-							} else {
-								client.roleCalls[1].addRole(newMember,newMember.guild.roles.cache.get(memberRole));
+								roleCall.addRole(member, member.guild.roles.cache.get(memberRole));
 							}
 						}
-					})
-					.catch(err=>{console.error(err.stack)});
-				}
-			});
+					}
+				});
+				
+				roleCall.on('roleReactionRemove', (reaction, member, role) =>
+				{
+					if(role.members.has(member.id)) //check if user does not have role
+					{
+						roleCall.removeRole(member, role)
+						.then(newMember => 
+						{
+							const removeMemberRole = ![...roleLists.yearRoles, ...roleLists.majorRoles, ...roleLists.courseRoles].some(roleID => newMember.roles.cache.some(memberRole => memberRole.id == roleID));
+							if(removeMemberRole)
+							{
+								if(newMember.roles.cache.has(memberRole))
+								{
+									roleCall.removeRole(newMember, newMember.guild.roles.cache.get(memberRole));
+								}
+							}
+						})
+						.catch(err=>{console.error(err.stack)});
+					}
+				});
+			} catch(err) {
+				await client.guilds.cache.get(server).channels.cache.get(namedChannels.testing).send(`role call went\n> yikes`);
+				reject(err);
+				return;
+			}	
+		});
+		resolve(client.roleCalls);
 	});
 }
 
