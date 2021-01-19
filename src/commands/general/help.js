@@ -3,7 +3,6 @@ const {MessageEmbed} = require(`${process.cwd()}/util/discord/structs.js`);
 const authorReply = require(`${process.cwd()}/util/reply/authorReply.js`);
 const parseTruthyArgs = require(`${process.cwd()}/util/general/parseTruthyArgs.js`);
 const {prefix} = require(`${process.cwd()}/util/components/config.json`);
-const EMBED_BACKGROUND_COLOR_IMAGE = `https://i.imgur.com/0NR5nbD.png`;
 const EMBED_MAX_FIELDS = 25;
 
 module.exports = {
@@ -25,9 +24,8 @@ module.exports = {
 			// ?help
 			const embeds = [];
 			embeds[0] = new MessageEmbed()
-				.setThumbnail(EMBED_BACKGROUND_COLOR_IMAGE)
 				.setTitle(`${message.client.user.username} Help`)
-				.setDescription(`Send \`${prefix}command -h\` with any command for more information about that command`)
+				.setDescription(`Send \`${prefix}<command> -h\` with any command for more information about that command`)
 				.setColor(0xFF00FF);
 			let previousCMDLevel = message.client.levelCache[commands.first().permLevel];
 			let cmdArr = [[]];
@@ -58,7 +56,6 @@ module.exports = {
 					if(cmdIndex == embeds.length)
 					{
 						embeds.push(new MessageEmbed()
-							.setThumbnail(EMBED_BACKGROUND_COLOR_IMAGE)
 							.setColor(0xFF00FF)
 						);
 					}
@@ -77,7 +74,7 @@ module.exports = {
 					{
 						if(cmdLevel > previousCMDLevel)
 						{
-							embed.addField(`\u200b`, `**Additional commands for: ${cmd.permLevel}**`);
+							embed.addField(`\u200b`, `**Commands for: ${cmd.permLevel}**`);
 							previousCMDLevel = cmdLevel;
 							extraFields = true;
 							numberOfFields++;

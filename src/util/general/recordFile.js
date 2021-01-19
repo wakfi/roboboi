@@ -5,7 +5,8 @@ function recordFile(obj, path)
 {
 	return new Promise(async (resolve,reject) =>
 	{
-		//var obj = {'hotList': hotList, "res": res}; obj should be formatted as a json, here is an example
+		//obj should be valid for JSON, here is an example
+		//var obj = {'hotList': hotList, "res": res};
 		const objJson = JSON.stringify(obj,function(k,v){
 				if(v instanceof Array)
 					return JSON.stringify(v);
