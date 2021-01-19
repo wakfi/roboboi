@@ -1,7 +1,7 @@
-function main()
+async function main()
 {
 const Discord = require('discord.js');
-const { prefix, server, memberRole, clientOptions, activity, clientStatus } = require(`${process.cwd()}/util/components/config.json`);
+const {prefix, server, memberRole, clientOptions, activity, clientStatus} = require(`${process.cwd()}/util/components/config.json`);
 const {token} = require(`${process.cwd()}/util/components/token.json`);
 const permLevels = require(`${process.cwd()}/util/components/permLevels.js`);
 const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
@@ -11,6 +11,7 @@ const selfDeleteReply = require(`${process.cwd()}/util/reply/selfDeleteReply.js`
 const cleanReply = require(`${process.cwd()}/util/reply/cleanReply.js`);
 const loadAllCommands = require(`${process.cwd()}/util/components/loadAllCommands.js`);
 const initRolecall = require(`${process.cwd()}/util/discord/initRolecall.js`);
+const studentRole = `674746958170292224`;
 
 const client = new Discord.Client(clientOptions);
 client.commands = new Discord.Collection();
@@ -65,7 +66,7 @@ client.on("guildDelete", guild => {
 });
 
 //runs when a new user joins the server
-client.on("guildMemberAdd", member => {});    //nothing. may want to try DMing the welcomeMessage embed to direct users to #welcome
+client.on("guildMemberAdd", member => {member.roles.add('674746958170292224').catch(e=>{console.error(e.stack)})});    //nothing. may want to try DMing the welcomeMessage embed to direct users to #welcome
 
 //runs when a user leaves the server
 client.on("guildMemberRemove", member => {}); //nothing
@@ -164,8 +165,11 @@ client.on("message", async message => {
 });
 
 //logs client in
-client.login(token);
-
+try {
+	await client.login(token);
+} catch (e) {
+	console.error(e.stack);
+}
 }
 
 /*
