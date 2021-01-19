@@ -1,6 +1,0 @@
-{
-	"autoReconnect": true,
-	"apiRequestMethod": "sequential",
-	"disabledEvents": ["TYPING_START","TYPING_STOP"],
-	"fetchAllMembers": true
-}

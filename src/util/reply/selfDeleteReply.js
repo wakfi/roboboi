@@ -1,7 +1,5 @@
 const path = require('path');
-const Message = require((require.resolve('discord.js')).split(path.sep).slice(0, -1).join(path.sep) + `${path.sep}structures${path.sep}Message.js`);
-//currently resolves to RichEmbed for v11.5.1
-const MessageEmbed = require((require.resolve('discord.js')).split(path.sep).slice(0, -1).join(path.sep) + `${path.sep}structures${path.sep}RichEmbed.js`);
+const { Message,MessageEmbed } = require(`${process.cwd()}/util/discord/structs.js`);
 const delay = require(`${process.cwd()}/util/time/delay.js`);
 
 function selfDeleteReply(message, input, options)

@@ -1,5 +1,5 @@
 const path = require('path');
-const Message = require((require.resolve('discord.js')).split(path.sep).slice(0, -1).join(path.sep) + `${path.sep}structures${path.sep}Message.js`);
+const {Message} = require(`${process.cwd()}/util/discord/structs.js`);
 const selfDeleteReply = require(`${process.cwd()}/util/reply/selfDeleteReply.js`);
 
 function authorReply(message, input)
