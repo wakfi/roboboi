@@ -78,7 +78,7 @@ function initRolecall(client,server,studentRole)
 						.then(newMember => 
 						{
 							const hasAStudentRole = [...roleLists.yearRoles, ...roleLists.majorRoles, ...roleLists.courseRoles].some(roleID => newMember.roles.cache.some(studentRole => studentRole.id == roleID));
-							if(hasAStudentRole && role.id == alumniRole) 
+							if(!hasAStudentRole || role.id == alumniRole) 
 							{
 								if(!newMember.roles.cache.has(studentRole))
 								{
