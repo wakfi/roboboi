@@ -14,3 +14,5 @@ function parseArgs(args,keys,flags,options)
 	//default is positional, the check for both of them is just to avoid the appearance of unexpected behavior
 	return parsePositionalArgs(args,keys,flags,options);
 }
+
+module.exports = parseArgs;
