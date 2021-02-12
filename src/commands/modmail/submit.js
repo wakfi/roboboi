@@ -6,7 +6,7 @@ const {modmail} = require(`${process.cwd()}/util/components/namedChannels.json`)
 
 module.exports = {
 	name: 'submit',
-	description: 'Send a message something to the Mod Mail. Currently only the message body will be sent, not any attachments. If you want to send an attachment, send a direct link to it instead',
+	description: 'Send a message to Mod Mail. Currently only the message body will be sent, not any attachments. If you want to send an attachment, send a direct link to it instead',
 	category: 'modmail',
 	usage: ['<text of message to submit>'],
 	permLevel: 'User',
