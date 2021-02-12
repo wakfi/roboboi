@@ -21,50 +21,25 @@ function initRolecall(client,server,studentRole)
 		roleLists.yearRoles.forEach(yearRole => yearRoles.set(yearRole, guildRoles.get(yearRole)));
 		roleLists.majorRoles.forEach(majorRole => majorRoles.set(majorRole, guildRoles.get(majorRole)));
 		roleLists.courseRoles.forEach(courseRole => courseRoles.set(courseRole, guildRoles.get(courseRole)));		
-		roleCallConfigArray.forEach(async configObject =>
+		roleCallConfigArray.forEach(configObject =>
 		{
 			try	{
 				const roleCall = new RoleCall(client,configObject);
+				//roleCall._constr;
 				client.roleCalls.push(roleCall);
 				removeRolesMap.set(roleCall, configObject.roleInputArray);
 				
 				roleCall.on('roleReactionAdd', async (reaction,member,role) =>
 				{
-					if(!role.members.has(member.id)) //check if user already has role
+					if(!role.members.has(member.id)) // ensure user does not have role
 					{
 						await roleCall.addRole(member,role).catch(e=>{console.error(e.stack)});
 						await checkRemoveLists(member, role, roleCall);
-						if(yearRoles.has(role.id))
+						if(role.id == alumniRole)
 						{
-							let hasYearRole = true;
-							let yearRole = null;
-							while(hasYearRole)
-							{
-								hasYearRole = yearRoles.every(otherRole => 
-								{
-									yearRole = otherRole;
-									return otherRole.members.has(member.id) && otherRole.id != role.id;
-								}); //check if user already has a year role
-								if(hasYearRole)
-								{
-									try {
-										await roleCall.removeReaction(member, yearRole);
-									} catch(e) {
-										console.error(e.stack);
-									}
-								}
-							}
-						}
-						if(member.roles.cache.has(studentRole))
-						{
-							if(role.id == alumniRole)
+							if(member.roles.cache.has(studentRole))
 							{
 								roleCall.removeRole(member, studentRole).catch(e=>{console.error(e.stack)});
-							}
-						} else {
-							if(!member.roles.cache.has(studentRole) && (!member.roles.cache.has(alumniRole) || role.id == alumniRole))
-							{
-								roleCall.addRole(member, member.guild.roles.cache.get(studentRole));
 							}
 						}
 					}
@@ -72,35 +47,37 @@ function initRolecall(client,server,studentRole)
 				
 				roleCall.on('roleReactionRemove', (reaction, member, role) =>
 				{
-					if(role.members.has(member.id)) //check if user does not have role
+					if(role.members.has(member.id)) // ensure user has role
 					{
 						roleCall.removeRole(member, role)
 						.then(newMember => 
 						{
-							const hasAStudentRole = [...roleLists.yearRoles, ...roleLists.majorRoles, ...roleLists.courseRoles].some(roleID => newMember.roles.cache.some(studentRole => studentRole.id == roleID));
-							if(!hasAStudentRole || role.id == alumniRole) 
+							if(role.id == alumniRole) 
 							{
 								if(!newMember.roles.cache.has(studentRole))
 								{
-									roleCall.addRole(newMember, newMember.guild.roles.cache.get(studentRole));
+									roleCall.addRole(newMember, newMember.guild.roles.cache.get(studentRole)).catch(e=>{console.error(e.stack)});
 								}
 							}
 						})
 						.catch(err=>{console.error(err.stack)});
+					} else {
+							if(role.id == alumniRole) 
+							{
+								if(!member.roles.cache.has(studentRole))
+								{
+									roleCall.addRole(member, member.guild.roles.cache.get(studentRole)).catch(e=>{console.error(e.stack)});
+								}
+							}
 					}
 				});
 			} catch(err) {
-				await client.guilds.cache.get(server).channels.cache.get(namedChannels.testing).send(`role call went\n> yikes`);
-				reject(err);
+				client.guilds.cache.get(server).channels.cache.get(namedChannels.testing).send(`role call went\n> yikes`).then(_=>reject(err));
+				reject(console.log('you should not see this in initRolecalls'));
 				return;
-			}	
+			}
 		});
-		if(client.roleCalls.length)
-		{
-			client.addRoleInRoleCall = client.roleCalls[client.roleCalls.length-1].addRole;
-			client.removeRoleInRoleCall = client.roleCalls[client.roleCalls.length-1].removeRole;
-			client.removeReactionInRoleCall = client.roleCalls[client.roleCalls.length-1].removeReaction;
-		}
+		Promise.all(client.roleCalls.map(roleCall => roleCall._constr));
 		resolve(client.roleCalls);
 		
 		async function checkRemoveLists(member, role, roleCall) 
@@ -122,7 +99,7 @@ function initRolecall(client,server,studentRole)
 					}
 					const roleToRemoveObject = await guild.roles.fetch(roleToRemove);
 					try {
-						targetRoleCall.removeReaction(member, roleToRemoveObject);
+						targetRoleCall.removeReaction(member, roleToRemove).catch(e=>{console.error(e.stack)});
 					} catch(e) {
 						console.error(e.stack);
 					}
