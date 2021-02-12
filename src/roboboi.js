@@ -49,8 +49,8 @@ client.roleCalls = [];
 //I call this .ready, even though there isn't actually a .ready anywhere
 client.once('ready', async () => 
 {
-	await initRolecall(client, server, memberRole);
 	addTimestampLogs();
+	await initRolecall(client, server, memberRole);
 	client.user.setPresence({activity:activity, status: clientStatus.status});
 	console.log(`${client.user.username} has started, with ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds`);
 });
