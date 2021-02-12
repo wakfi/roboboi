@@ -80,7 +80,7 @@ const permLevels = [
       check: (message) => {
 		try 
 		{
-		  if(config.serverOwner == message.guild.ownerID)
+		  if(message.author.id == message.guild.ownerID)
 		  {
 			return true;
 		  } else {
