@@ -71,6 +71,10 @@ module.exports = {
 			}
 		})(newActivity.type || 'PLAYING');
 		newActivity.type = type;
+		if(newActivity.type !== type)
+		{
+			Object.defineProperty(newActivity, 'type', {value: type, writable: false, enumerable: true, configurable: true});
+		}
 		try {
 			config.activity = newActivity;
 			await message.client.user.setPresence({activity:config.activity});
