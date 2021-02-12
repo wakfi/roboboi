@@ -14,8 +14,8 @@ module.exports = {
 	permLevel: 'Bot Admin',
 	args: true,
 	async execute(message, args) {
-		const keys = ['application.id','name','type','url']
-		const flags = ['a','n','t','u'];
+		const keys = ['name','type','url'];
+		const flags = ['n','t','u'];
 		const newActivity = parsePositionalArgs(args, keys, flags);
 		if(!newActivity.name)
 		{
@@ -32,6 +32,10 @@ module.exports = {
 						return 'STREAMING';
 					case 'LISTENING':
 					case 'LISTEN':
+						if(args[1].toUpperCase() === 'TO') 
+						{
+							args.shift();
+						}
 					case 'LISTENTO':
 					case 'LISTENINGTO':
 						args.shift();
@@ -61,7 +65,9 @@ module.exports = {
 				case 'LISTENING':
 				case 'LISTEN':
 				case 'LISTENTO':
+				case 'LISTEN TO':
 				case 'LISTENINGTO':
+				case 'LISTENING TO':
 					return 'LISTENING';
 				case 'WATCHING':
 				case 'WATCH':
