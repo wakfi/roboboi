@@ -5,6 +5,7 @@ const svgToPng = require('svg-to-png');
 const path = require('path');
 const fs = require('fs-extra');
 const urlSvgRegex = new RegExp("https?://[a-zA-Z0-9._~:/?#\\[\\]@!$&'()*+,;=%-]+\\.svg");
+const notFound404Regex = /<img alt="404/;
 
 /* license for emojilib.json adapted from another source
 The MIT License (MIT)
@@ -100,16 +101,28 @@ module.exports = {
 			try {
 				//we need to verify that its an emoji
 				githubResponseA = await rp(svgDomain);
+				if(notFound404Regex.test(githubResponseA))
+				{
+					throw new Exception();
+				}
 			} catch(err) {
 				//there are some emojis that have slight disconnections between their codepoints and their url, so try to fix
 				try {
 					const svgSecondDomain = `${twemojiDomain}${emojiInUnicode.slice(0,emojiInUnicode.lastIndexOf('-'))}.svg`;
 					githubResponseA = await rp(svgSecondDomain);
+					if(notFound404Regex.test(githubResponseA))
+					{
+						throw new Exception();
+					}
 				} catch(moreErr) {
 					//the number/digit emojis have the 'fe0f' codepoint in the middle but their twemoji urls don't for some reason
 					try {
 						const svgThirdDomain = `${twemojiDomain}${emojiInUnicode.split('fe0f-').join('')}.svg`;
 						githubResponseA = await rp(svgThirdDomain);
+						if(notFound404Regex.test(githubResponseA))
+						{
+							throw new Exception();
+						}
 					} catch(stillErr) {
 						//not an emoji. the conditional is checking if its throwing a real error or just 404 not found
 						if(!JSON.stringify(e).includes(`Response code 404 (Not Found)`))
@@ -125,7 +138,11 @@ module.exports = {
 				//confirmed emoji is a unicode emoji 
 				const githubResponseB = await rp(githubResponseA.split(`<iframe class="render-viewer " src="`)[1].split('"')[0]);
 				//the order here is: get svg image from remote (save local), convert to png (save local), send png, delete local svg and png
-				const emojiName = emojiMap[messageElement][0] || emojiInUnicode;
+				const emojiName = emojiMap[messageElement] || emojiInUnicode;
+				if(emojiName == emojiInUnicode)
+				{
+					console.log(`emoji missing name: ${messageElement}`);
+				}
 				//data for vector image of emoji
 				const emojiSvg = await rp(githubResponseB.split('data-image  = "')[1].split('"')[0]);
 				await hugify(message, emojiSvg, emojiName, emojiInUnicode);
