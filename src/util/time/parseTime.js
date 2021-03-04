@@ -29,7 +29,7 @@ function parseTime(timeToParse)
 		const timeString = timeToParse;
 		if(!isTimeFormat(timeString))
 		{
-			throw new SyntaxError('must be in the format 1d 2h 3m 4s 5ms (any segment is optional, such as `1h 1m` is valid)');
+			throw new TypeError('must be in the format 1d 2h 3m 4s 5ms (any segment is optional, such as `1h 1m` is valid)');
 		} else {
 			let match = null;
 			let years = 0;

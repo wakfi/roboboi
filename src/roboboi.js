@@ -11,6 +11,7 @@ const selfDeleteReply = require(`${process.cwd()}/util/reply/selfDeleteReply.js`
 const cleanReply = require(`${process.cwd()}/util/reply/cleanReply.js`);
 const loadAllCommands = require(`${process.cwd()}/util/components/loadAllCommands.js`);
 const initRolecall = require(`${process.cwd()}/util/discord/initRolecall.js`);
+const initScrapers = require(`${process.cwd()}/util/components/initScrapers.js`);
 const studentRole = `674746958170292224`;
 
 const client = new Discord.Client(clientOptions);
@@ -45,12 +46,14 @@ client.permlevel = (message) => {
  first, so they have to be instantiated in .ready (below)
 */
 client.roleCalls = [];
+client.scrapers = new Discord.Collection();
 
 //I call this .ready, even though there isn't actually a .ready anywhere
 client.once('ready', async () => 
 {
 	addTimestampLogs();
 	await initRolecall(client, server, memberRole);
+	initScrapers(client);
 	client.user.setPresence({activity:activity, status: clientStatus.status});
 	console.log(`${client.user.username} has started, with ${client.users.cache.size} users, in ${client.channels.cache.size} channels of ${client.guilds.cache.size} guilds`);
 });

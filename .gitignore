@@ -3,6 +3,7 @@ token.json
 config.json
 wakfi.js
 poll_results/*.json
+scraperConfig.json
 
 # Node specific ignores
 #

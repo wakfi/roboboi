@@ -15,6 +15,7 @@
     "emoji-unicode": "^2.0.1",
     "fs-extra": "^9.1.0",
     "node-fetch": "^2.6.1",
+    "scraper-node": "^1.0.1",
     "svg-to-png": "^4.0.0"
   }
 }
