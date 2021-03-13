@@ -58,18 +58,30 @@ module.exports = {
 		const messageElement = args[0];
 		if(urlSvgRegex.test(messageElement))
 		{
-			const svgToHugify = await rp(messageElement);
-			await hugify(message, svgToHugify);
+			let svgResponse = null;
+			try
+			{
+				svgResponse = await fetch(messageElement);
+			} catch(e) {
+				// ignore
+			}
+			if(svgResponse && svgResponse.status === 200)
+			{
+				const svgToHugify = await svgResponse.text();
+				await hugify(message, svgToHugify);
+			} else {
+				message.channel.send(`I can't reach this address. Check that there are no typos and that the webpage is online and publicly accessible`);
+			}
 		} else if(messageElement.includes(`>`) && messageElement.includes(`:`)) {
-			//emoji is a custom server emoji
+			//emoji is a custom server emote
 			const splitEmoji = messageElement.split(`:`);
 			const fileType = splitEmoji.shift() === `<a` ? `.gif` : `.png`; //animated or image
 			const emojiName = splitEmoji.shift();
 			const emojiSnowflake = splitEmoji.shift().split(`>`)[0];
 			const emojiImageUrl = `${discordEmojiUri}${emojiSnowflake}${fileType}`;
 			message.channel.send({files: 
-				[{attachment: emojiImageUrl,
-				name: `${emojiName}${fileType}`}]
+			                        [{attachment: emojiImageUrl,
+			                          name: `${emojiName}${fileType}`}]
 			})
 			.catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err.stack}`)});
 		} else if(!messageElement.includes(`>`)) {
