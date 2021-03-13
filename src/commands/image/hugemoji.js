@@ -20,7 +20,7 @@ const hugify = async (message,vectorImage,imageName,vectorName) =>
 	{
 		vectorImage = /(<svg.*width=")\d+(" height=")\d+(".*<\/svg>)/s.exec(vectorImage).slice(1).join('722');
 	}
-	if(imageName === undefined) imageName = 'image';
+	if(imageName === undefined) imageName = `image`;
 	if(vectorName === undefined) vectorName = imageName;
 	const picPath = path.normalize(`${process.cwd()}/../file_dump/${vectorName}`);
 	await fs.outputFile(`${picPath}.svg`,vectorImage);
@@ -30,20 +30,16 @@ const hugify = async (message,vectorImage,imageName,vectorName) =>
 		await message.channel.send({files: 
 			[{attachment: `${picPath}.png`,
 			name: `${imageName}.png`}]
-		}).catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err}`)});
+		}).catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err.stack}`)});
 		//cleanup created png
 		await fs.remove(`${picPath}.png`)
-		.catch(err => {
-			console.error(err)
-		});
+		.catch(err => console.error(err.stack));
 	} catch(e) {
 		console.error(e.stack);
 	}
 	//delete svg regardless of png success
 	await fs.remove(`${picPath}.svg`)
-	.catch(err => {
-		console.error(err)
-	});
+	.catch(err => console.error(err.stack));
 };
 
 module.exports = {
