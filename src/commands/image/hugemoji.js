@@ -1,36 +1,15 @@
-const nf = require('node-fetch');
-const rp = async (query) => await (await nf(query)).text(); //originally used request-promise, now deprecated. This lambda is for backwards compatability
+const fetch = require('node-fetch');
+// moving away from the rp-based algorithm
+const rp = async (query) => await (await fetch(query)).text(); //originally used request-promise, now deprecated. This lambda is for backwards compatability
 const emojiUnicode = require('emoji-unicode');
 const svgToPng = require('svg-to-png');
 const path = require('path');
 const fs = require('fs-extra');
 const urlSvgRegex = new RegExp("https?://[a-zA-Z0-9._~:/?#\\[\\]@!$&'()*+,;=%-]+\\.svg");
 const notFound404Regex = /<img alt="404/;
-
-/* license for emojilib.json adapted from another source
-The MIT License (MIT)
-
-Copyright (c) 2014 Mu-An Chiou
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-const emojiMap = require(`${process.cwd()}/util/components/emojilib.json`);
+const TwemojiError = require(`${process.cwd()}/util/errors/TwemojiError.js`);
+const emojiMap = require(`${process.cwd()}/util/components/emojimap.json`);
+const svgLinks = require(`${process.cwd()}/util/components/svglinkmap.json`);
 
 const hugify = async (message,vectorImage,imageName,vectorName) =>
 {
@@ -93,60 +72,58 @@ module.exports = {
 			.catch(err=>{console.error(`Error sending a message:\n\t${typeof err==='string'?err.split('\n').join('\n\t'):err.stack}`)});
 		} else if(!messageElement.includes(`>`)) {
 			//text is a string
-			const twemojiDomain = `https://github.com/twitter/twemoji/blob/master/assets/svg/`;
+			const twemojiDomain = `https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/`;
 			const emojiToVerify = messageElement;
 			const emojiInUnicode = emojiUnicode(emojiToVerify).split(' ').join('-');
-			const svgDomain = `${twemojiDomain}${emojiInUnicode}.svg`;
-			let githubResponseA = null;
-			try {
-				//we need to verify that its an emoji
-				githubResponseA = await rp(svgDomain);
-				if(notFound404Regex.test(githubResponseA))
-				{
-					throw new Exception();
-				}
-			} catch(err) {
-				//there are some emojis that have slight disconnections between their codepoints and their url, so try to fix
-				try {
-					const svgSecondDomain = `${twemojiDomain}${emojiInUnicode.slice(0,emojiInUnicode.lastIndexOf('-'))}.svg`;
-					githubResponseA = await rp(svgSecondDomain);
-					if(notFound404Regex.test(githubResponseA))
-					{
-						throw new Exception();
-					}
-				} catch(moreErr) {
-					//the number/digit emojis have the 'fe0f' codepoint in the middle but their twemoji urls don't for some reason
-					try {
-						const svgThirdDomain = `${twemojiDomain}${emojiInUnicode.split('fe0f-').join('')}.svg`;
-						githubResponseA = await rp(svgThirdDomain);
-						if(notFound404Regex.test(githubResponseA))
-						{
-							throw new Exception();
-						}
-					} catch(stillErr) {
-						//not an emoji. the conditional is checking if its throwing a real error or just 404 not found
-						if(!JSON.stringify(e).includes(`Response code 404 (Not Found)`))
-						{
-							console.error(e.stack);
-						}
-					}
-				}
-			}
-			//check if one of the attempts succeeded before continueing
-			if(githubResponseA) 
+			// svgLinks only contains a small set of links to twemoji svg files
+			// all the emojis in it have links that are different than their codepoints
+			const svgDomain = svgLinks[emojiToVerify] || `${twemojiDomain}${emojiInUnicode}.svg`;
+			console.log(emojiInUnicode);
+			console.log(svgDomain);
+			//we need to verify that the messageElement is a unicode standard emoji
+			let githubResponse = await fetch(svgDomain);
+			
+			if(githubResponse.status !== 200)
 			{
-				//confirmed emoji is a unicode emoji 
-				const githubResponseB = await rp(githubResponseA.split(`<iframe class="render-viewer " src="`)[1].split('"')[0]);
-				//the order here is: get svg image from remote (save local), convert to png (save local), send png, delete local svg and png
-				const emojiName = emojiMap[messageElement] || emojiInUnicode;
-				if(emojiName == emojiInUnicode)
+				if(githubResponse.status === 404)
 				{
-					console.log(`emoji missing name: ${messageElement}`);
+					console.log('retrying');
+					// there are some emojis that have slight disconnections between their codepoints and their url, so try to fix
+						// theres a significant number of emojis that have two codepoints: one is the emoji, and the second is fe0f; twemoji
+						// often likes to drop the fe0f from these
+						// the number/digit emojis have the 'fe0f' codepoint in the middle but their twemoji urls don't for some reason
+					//const svgSecondDomain = `${twemojiDomain}${emojiInUnicode.slice(0,emojiInUnicode.lastIndexOf('-'))}.svg`;
+					//githubResponse = await rp(svgSecondDomain);
+					
+					const svgThirdDomain = `${twemojiDomain}${emojiInUnicode.split('-fe0f').join('')}.svg`;
+					console.log(`modified to ${svgThirdDomain}`);
+					githubResponse = await rp(svgThirdDomain);
 				}
-				//data for vector image of emoji
-				const emojiSvg = await rp(githubResponseB.split('data-image  = "')[1].split('"')[0]);
-				await hugify(message, emojiSvg, emojiName, emojiInUnicode);
+				
+				//not an emoji. the conditional is checking if its throwing a real error or just 404 not found
+				if(githubResponse.status !== 200)
+				{
+					const e = new TwemojiError(messageElement, emojiInUnicode, svgDomain, `in hugemoji, with ${messageElement} resolving to ${emojiInUnicode} (${svgDomain})`);
+					console.error(e);
+					return;
+				}
 			}
+			
+			//emoji is confirmed to be a unicode emoji and we have the svg data ready now 
+			const emojiSvg = await githubResponse.text();
+			//check if one of the attempts succeeded before continueing
+			//if(emojiSvg)
+			//{//try to remove this IF
+			//the order here is: get svg image from remote (save local), convert to png (save local), send png, delete local svg and png
+			const emojiName = emojiMap[messageElement] || emojiInUnicode;
+			if(emojiName == emojiInUnicode)
+			{
+				console.log(`emoji missing name: ${messageElement}`);
+			}
+			//data for vector image of emoji
+			//const emojiSvg = await rp(githubSvgRaw.split('data-image  = "')[1].split('"')[0]);
+			await hugify(message, emojiSvg, emojiName, emojiInUnicode);
+			//}
 		}
 	}
 };
