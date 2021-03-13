@@ -91,8 +91,6 @@ module.exports = {
 			// svgLinks only contains a small set of links to twemoji svg files
 			// all the emojis in it have links that are different than their codepoints
 			const svgDomain = svgLinks[emojiToVerify] || `${twemojiUri}${emojiInUnicode}.svg`;
-			console.log(emojiInUnicode);
-			console.log(svgDomain);
 			//we need to verify that the messageElement is a unicode standard emoji and retrieve the vector image (svg)
 			let githubResponse = await fetch(svgDomain);
 			if(githubResponse.status !== 200)
@@ -104,7 +102,6 @@ module.exports = {
 						// often likes to drop the fe0f from these
 						// the number/digit emojis have the 'fe0f' codepoint in the middle but their twemoji urls don't for some reason
 					const modifiedSvgDomain = `${twemojiUri}${emojiInUnicode.split('-fe0f').join('')}.svg`;
-					console.log(`modified to ${modifiedSvgDomain}`);
 					githubResponse = await rp(modifiedSvgDomain);
 				}
 
