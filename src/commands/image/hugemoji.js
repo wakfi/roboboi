@@ -102,15 +102,13 @@ module.exports = {
 						// often likes to drop the fe0f from these
 						// the number/digit emojis have the 'fe0f' codepoint in the middle but their twemoji urls don't for some reason
 					const modifiedSvgDomain = `${twemojiUri}${emojiInUnicode.split('-fe0f').join('')}.svg`;
-					githubResponse = await rp(modifiedSvgDomain);
+					githubResponse = await fetch(modifiedSvgDomain);
 				}
 
 				//not an emoji (or no resolution method implemented for issue). the conditional is checking if its throwing a real error or just 404 not found
 				if(githubResponse.status !== 200)
 				{
-					const e = new TwemojiError(messageElement, emojiInUnicode, svgDomain, `in hugemoji, with ${messageElement} resolving to ${emojiInUnicode} (${svgDomain})`);
-					console.error(e);
-					return;
+					throw new TwemojiError(messageElement, emojiInUnicode, svgDomain, `in hugemoji, with ${messageElement} resolving to ${emojiInUnicode} (${svgDomain})`);
 				}
 			}
 
