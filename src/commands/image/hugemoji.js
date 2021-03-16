@@ -18,7 +18,7 @@ const hugify = async (message,vectorImage,imageName,vectorName) =>
 	//the order here is: get svg image (save local), remove size constraints if needed, convert to png (save local), send png, delete local svg and png
 	if(/width|height/.test(vectorImage))
 	{
-		vectorImage = /(<svg.*width=")\d+(" height=")\d+(".*<\/svg>)/s.exec(vectorImage).slice(1).join('722');
+		vectorImage = /(<svg.*) width="\d*(?:px)?" height="\d*(?:px)?"(.*<\/svg>)/s.exec(vectorImage).slice(1).join('');
 	}
 	if(imageName === undefined) imageName = `image`;
 	if(vectorName === undefined) vectorName = imageName;
