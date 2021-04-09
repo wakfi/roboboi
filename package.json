@@ -17,5 +17,8 @@
     "node-fetch": "^2.6.1",
     "scraper-node": "^1.0.1",
     "svg-to-png": "^4.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.22.0"
   }
 }
