@@ -4,6 +4,7 @@ config.json
 wakfi.js
 poll_results/*.json
 scraperConfig.json
+pm2-process.json
 
 # Node specific ignores
 #

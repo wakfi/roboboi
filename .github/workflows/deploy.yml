@@ -3,7 +3,7 @@ name: Deploy
 on: [push]
 
 jobs:
-  deploy:
+  deploy-master:
     if: github.ref == 'refs/heads/master'
     runs-on: [ubuntu-latest]
     steps:
@@ -15,4 +15,18 @@ jobs:
           username: ${{ secrets.USERNAME }}
           port: 22
           key: ${{ secrets.SSHKEY }}
-          script: cd ${{ secrets.PROJECTPATH }} && git pull origin master && npm i
+          script: cd ${{ secrets.PROJECTPATH }} && git checkout -- . && git pull origin master && npm i && pm2 restart roboboi
+
+  deploy-canary:
+      if: github.ref == 'refs/heads/canary'
+      runs-on: [ubuntu-latest]
+      steps:
+        - uses: actions/checkout@v1
+        - name: Push to server
+          uses: appleboy/ssh-action@master
+          with:
+            host: ${{ secrets.HOST }}
+            username: ${{ secrets.USERNAME }}
+            port: 22
+            key: ${{ secrets.SSHKEY }}
+            script: cd ${{ secrets.CANARYPATH }} && git checkout -- . && git pull origin canary && npm i && pm2 restart canaryada
