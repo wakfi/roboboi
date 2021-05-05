@@ -5,7 +5,4 @@ updates:
   schedule:
     interval: daily
   open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: discord.js
-    versions:
-    - 12.5.2
+  target-branch: "canary"
