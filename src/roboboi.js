@@ -12,7 +12,6 @@ const cleanReply = require(`${process.cwd()}/util/reply/cleanReply.js`);
 const loadAllCommands = require(`${process.cwd()}/util/components/loadAllCommands.js`);
 const initRolecall = require(`${process.cwd()}/util/discord/initRolecall.js`);
 const initScrapers = require(`${process.cwd()}/util/components/initScrapers.js`);
-const studentRole = `674746958170292224`;
 
 const client = new Discord.Client(clientOptions);
 client.commands = new Discord.Collection();
