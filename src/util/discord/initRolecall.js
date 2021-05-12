@@ -1,7 +1,7 @@
 const RoleCall = require(`discord-role-call`);
 const {Collection} = require(`${process.cwd()}/util/discord/structs.js`);
 const namedChannels = require(`${process.cwd()}/util/components/namedChannels.json`);
-
+const util = require('util');
 //inputs for the RoleCall objects
 const {roleCallConfigArray} = require(`${process.cwd()}/util/components/roleCallConfig.json`);
 const roleLists = require(`${process.cwd()}/util/components/roleLists.json`);
@@ -85,26 +85,23 @@ function initRolecall(client,server,studentRole)
 			const roleInputArray = removeRolesMap.get(roleCall);
 			const removeRoles = roleInputArray.find(roleInput => roleInput.role == role.id).removeRoles;
 			if(!(removeRoles && removeRoles.length)) return;
-			if(removeRoles && removeRoles.length)
+			for(let i = 0; i < removeRoles.length; i++)
 			{
-				for(let i = 0; i < removeRoles.length; i++)
+				const roleToRemove = removeRoles[i];
+				if(!member.roles.cache.has(roleToRemove)) continue;
+				const targetRoleCall = client.roleCalls.find(roleCall => roleCall.roles.has(roleToRemove));
+				console.log(util.inspect(targetRoleCall, {depth:1}));
+				if(!targetRoleCall)
 				{
-					const roleToRemove = removeRoles[i];
-					if(!member.roles.cache.has(roleToRemove)) continue;
-					const targetRoleCall = client.roleCalls.find(roleCall => roleCall.roles.has(roleToRemove));
-					if(!targetRoleCall)
-					{
-						roleCall.removeRole(member, roleToRemove).catch(e=>{console.error(e.stack)});
-						continue;
-					}
-					const roleToRemoveObject = await guild.roles.fetch(roleToRemove);
-					try {
-						targetRoleCall.removeReaction(member, roleToRemove).catch(e=>{console.error(e.stack)});
-					} catch(e) {
-						console.error(e.stack);
-					}
-				};
-			}
+					roleCall.removeRole(member, roleToRemove).catch(e=>{console.error(e.stack)});
+					continue;
+				}
+				try {
+					targetRoleCall.removeReaction(member, roleToRemove).catch(e=>{console.error(e.stack)});
+				} catch(e) {
+					console.error(e.stack);
+				}
+			};
 		}
 	});
 }
