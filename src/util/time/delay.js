@@ -15,7 +15,7 @@ function delay(timeToDelay, callback)
 				try {
 					if(callback !== undefined) resolve(await callback());
 					else resolve(true);
-				} catch(...e) {reject(...e)}
+				} catch(e) {reject(e)}
 			}));
 		}, timeInMilliseconds);
 	});
