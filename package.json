@@ -19,6 +19,6 @@
     "svg-to-png": "^4.0.0"
   },
   "devDependencies": {
-    "eslint": "^7.22.0"
+    "eslint": "^7.27.0"
   }
 }
