@@ -20,7 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-Derived from https://github.com/MrAugu/modmail-js/blob/master/config.js
+Derived from https://github.com/MrAugu/modmail-js/blob/83788e51610c4ba9371261f6d7f98d62b758963d/config.js
 */
 const config = require('./config.json');
 
@@ -29,7 +29,7 @@ const permLevels = [
       name: "User",
       check: () => true
     },
-	
+
 	{ level: 2,
 	  name: "MC",
 	  check: () => {
@@ -59,7 +59,7 @@ const permLevels = [
         }
       }
     },
-	
+
 	{ level: 8,
       name: "Bot Admin",
       check: (message) => {
@@ -78,7 +78,7 @@ const permLevels = [
     { level: 9,
       name: "Server Owner",
       check: (message) => {
-		try 
+		try
 		{
 		  if(message.author.id == message.guild.ownerID)
 		  {
@@ -91,7 +91,7 @@ const permLevels = [
 		}
 	  }
     },
-	
+
 	{ level: 10,
       name: "Bot Developer",
       check: (message) => config.developers.includes(message.author.id)
