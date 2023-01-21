@@ -20,7 +20,7 @@ function initRolecall(client,server,studentRole)
 		const guildRoles = guild.roles.cache;
 		roleLists.yearRoles.forEach(yearRole => yearRoles.set(yearRole, guildRoles.get(yearRole)));
 		roleLists.majorRoles.forEach(majorRole => majorRoles.set(majorRole, guildRoles.get(majorRole)));
-		roleLists.courseRoles.forEach(courseRole => courseRoles.set(courseRole, guildRoles.get(courseRole)));		
+		roleLists.courseRoles.forEach(courseRole => courseRoles.set(courseRole, guildRoles.get(courseRole)));
 		roleCallConfigArray.forEach(configObject =>
 		{
 			try	{
@@ -28,7 +28,7 @@ function initRolecall(client,server,studentRole)
 				//roleCall._constr;
 				client.roleCalls.push(roleCall);
 				removeRolesMap.set(roleCall, configObject.roleInputArray);
-				
+
 				roleCall.on('roleReactionAdd', async (reaction,member,role) =>
 				{
 					if(!role.members.has(member.id)) // ensure user does not have role
@@ -44,15 +44,15 @@ function initRolecall(client,server,studentRole)
 						}
 					}
 				});
-				
+
 				roleCall.on('roleReactionRemove', (reaction, member, role) =>
 				{
 					if(role.members.has(member.id)) // ensure user has role
 					{
 						roleCall.removeRole(member, role)
-						.then(newMember => 
+						.then(newMember =>
 						{
-							if(role.id == alumniRole) 
+							if(role.id == alumniRole)
 							{
 								if(!newMember.roles.cache.has(studentRole))
 								{
@@ -62,7 +62,7 @@ function initRolecall(client,server,studentRole)
 						})
 						.catch(err=>{console.error(err.stack)});
 					} else {
-							if(role.id == alumniRole) 
+							if(role.id == alumniRole)
 							{
 								if(!member.roles.cache.has(studentRole))
 								{
@@ -79,8 +79,8 @@ function initRolecall(client,server,studentRole)
 		});
 		Promise.all(client.roleCalls.map(roleCall => roleCall._constr));
 		resolve(client.roleCalls);
-		
-		async function checkRemoveLists(member, role, roleCall) 
+
+		async function checkRemoveLists(member, role, roleCall)
 		{
 			const roleInputArray = removeRolesMap.get(roleCall);
 			const removeRoles = roleInputArray.find(roleInput => roleInput.role == role.id).removeRoles;
@@ -90,7 +90,6 @@ function initRolecall(client,server,studentRole)
 				const roleToRemove = removeRoles[i];
 				if(!member.roles.cache.has(roleToRemove)) continue;
 				const targetRoleCall = client.roleCalls.find(roleCall => roleCall.roles.has(roleToRemove));
-				console.log(util.inspect(targetRoleCall, {depth:1}));
 				if(!targetRoleCall)
 				{
 					roleCall.removeRole(member, roleToRemove).catch(e=>{console.error(e.stack)});
