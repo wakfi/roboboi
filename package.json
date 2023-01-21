@@ -4,7 +4,7 @@
   "description": "bot for GU cpsc discord",
   "main": "src/roboboi.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "generate": "node ./scripts/processFile.mjs"
   },
   "repository": "https://github.com/wakfi/roboboi",
   "author": "wakfi",

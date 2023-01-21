@@ -13,7 +13,7 @@ module.exports = {
 	async execute(message, args) {
 		try {
 			const botVersion = (await rp('https://github.com/wakfi/roboboi/releases')).split('/wakfi/roboboi/releases/tag/')[1].split('"')[0];
-			const djsVersion = (await rp('https://github.com/wakfi/roboboi/blob/master/package.json')).split('>discord.js<')[1].split('^')[1].split('<')[0];
+			const djsVersion = (await rp('https://github.com/wakfi/roboboi/blob/main/package.json')).split('>discord.js<')[1].split('^')[1].split('<')[0];
 			const embed = new MessageEmbed()
 				.setTitle(`Mini Ada`)
 				.setThumbnail(message.client.user.displayAvatarURL())
