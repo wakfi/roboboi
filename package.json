@@ -14,7 +14,7 @@
     "discord.js": "^12.5.3",
     "emoji-unicode": "^2.0.1",
     "fs-extra": "^10.0.0",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.9",
     "scraper-node": "^1.0.1",
     "svg-to-png": "^4.0.0"
   },
