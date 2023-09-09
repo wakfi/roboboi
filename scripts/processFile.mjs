@@ -104,7 +104,7 @@ const selectionSet = new Set([
 	351,
 	410,
 	436,
-	491/492,
+	"491/492",
 	499,
 ].map(n => 'c' + n))
 
@@ -116,8 +116,8 @@ function selectCoursesFromList(list) {
 	const lines = list.split('\n')
 	const modifiedLines = lines.map((line) => {
 		const eol = line.indexOf(']},')
-		if(eol === -1) return undefined
-		if(!selectionSet.has(line.slice(-4))) return undefined
+		if (eol === -1) return undefined
+		if(!selectionSet.has(line.slice(eol+4))) return undefined
 		return line.slice(0, eol + 3)
 	}).filter(x => !!x)
 	const modifiedList = modifiedLines.join('\n')

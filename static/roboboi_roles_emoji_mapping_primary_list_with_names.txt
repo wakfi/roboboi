@@ -17,14 +17,13 @@
 {"role": "710795455503663113", "emoji": "🌐", "addRoles" : [], "removeRoles" : ["710759603310166096"]}, f332
 {"role": "675378930454233128", "emoji": "🗻", "addRoles" : [], "removeRoles" : ["841917506453241866"]}, f333
 {"role": "710761862551044158", "emoji": "🛠️", "addRoles" : [], "removeRoles" : ["841917408457523221"]}, f334
-
 {"role": "710779583158288385", "emoji": "🏔️", "addRoles" : [], "removeRoles" : ["710778034688622622"]}, f341
+
 {"role": "674325682603556865", "emoji": "🐵", "addRoles" : [], "removeRoles" : ["674325556808122379"]}, f346
 {"role": "749886748066054204", "emoji": "🔒", "addRoles" : [], "removeRoles" : ["674325735481147413"]}, f348
 {"role": "1066263606330662984", "emoji": "🏺", "addRoles" : [], "removeRoles" : ["1066263731526434917"]}, f349
 {"role": "710759804292825128", "emoji": "🧮", "addRoles" : [], "removeRoles" : ["710760231709442089"]}, f351
 {"role": "710779869256089640", "emoji": "🔐", "addRoles" : [], "removeRoles" : ["710778701964640276"]}, f353
-{"role": "710759367863042081", "emoji": "🥼", "addRoles" : [], "removeRoles" : ["841920733579706380"]}, f310
 {"role": "674325734759858181", "emoji": "🐕", "addRoles" : [], "removeRoles" : ["674325733673271336"]}, f425
 {"role": "710779636015038524", "emoji": "🏠", "addRoles" : [], "removeRoles" : ["710778393326780507"]}, f431
 {"role": "710779973157388319", "emoji": "🛰️", "addRoles" : [], "removeRoles" : ["710778909221716030"]}, f435
@@ -37,9 +36,10 @@
 {"role": "675379896326946817", "emoji": "🏍️", "addRoles" : [], "removeRoles" : ["675379319643832350"]}, f499
 
 {"role": "674325936782573607", "emoji": "🐋", "addRoles" : [], "removeRoles" : ["841918232675876874"]}, f(sp) human comp intrctn
-{"role": "", "emoji": "🛡️", "addRoles" : [], "removeRoles" : []}, f(sp) info theory
 {"role": "675374866018336768", "emoji": "📈", "addRoles" : [], "removeRoles" : ["841920693330247711"]}, f(sp) BI tech
 {"role": "935770199750242354", "emoji": "🌀", "addRoles" : [], "removeRoles" : ["935770123237724181"]}, f(sp) dist systems
+{"role": "1150186065940975707", "emoji": "🛡️", "addRoles" : [], "removeRoles" : ["841920733579706380"]}, f(sp) info theory
+{"role": "1150200522142384168", "emoji": "🗽", "addRoles" : [], "removeRoles" : []}, f(sp) info warfare
 
 {"role": "674031221541699638", "emoji": "🐣", "addRoles" : [], "removeRoles" : ["674032329919954944"]}, c121
 {"role": "674031156580057098", "emoji": "🐤", "addRoles" : [], "removeRoles" : ["674032298185850880"]}, c122
@@ -79,7 +79,4 @@
 {"role": "675379197824335873", "emoji": "🚀", "addRoles" : [], "removeRoles" : ["675379198650482688"]}, c491/492
 {"role": "675379319643832350", "emoji": "🚲", "addRoles" : [], "removeRoles" : ["675379896326946817"]}, c499
 
-{"role": "841918232675876874", "emoji": "⌨", "addRoles" : [], "removeRoles" : ["674325936782573607"]}, c(sp) human comp intrctn
-{"role": "841920733579706380", "emoji": "🐳", "addRoles" : [], "removeRoles" : ["710759367863042081"]}, c(sp) info theory
-{"role": "841920693330247711", "emoji": "🗽", "addRoles" : [], "removeRoles" : ["675374866018336768"]}, c(sp) BI tech
-{"role": "935770123237724181", "emoji": "💧", "addRoles" : [], "removeRoles" : ["935770199750242354"]}, c(sp) dist systems
+{"role": "841920733579706380", "emoji": "🐳", "addRoles" : [], "removeRoles" : ["1150186065940975707"]}, c(sp) info theory
