@@ -40,9 +40,10 @@
 
 {"role": "674325936782573607", "emoji": "🐋", "addRoles" : [], "removeRoles" : ["841918232675876874"]}, f(sp) human comp intrctn
 {"role": "692821489044553798", "emoji": "📊", "addRoles" : [], "removeRoles" : ["841917813232762881"]}, f(sp) data vis
-{"role": "710759367863042081", "emoji": "🥼", "addRoles" : [], "removeRoles" : ["841920733579706380"]}, f(sp) software studio
 {"role": "675374866018336768", "emoji": "📈", "addRoles" : [], "removeRoles" : ["841920693330247711"]}, f(sp) BI tech
 {"role": "935770199750242354", "emoji": "🌀", "addRoles" : [], "removeRoles" : ["935770123237724181"]}, f(sp) dist systems
+{"role": "1150186065940975707", "emoji": "🛡️", "addRoles" : [], "removeRoles" : ["841920733579706380"]}, f(sp) info theory
+{"role": "1150200522142384168", "emoji": "🗽", "addRoles" : [], "removeRoles" : []}, f(sp) info warfare
 
 {"role": "710777726637703199", "emoji": "🖌️", "addRoles" : [], "removeRoles" : ["710779277573881897"]}, c107
 {"role": "674031221541699638", "emoji": "🐣", "addRoles" : [], "removeRoles" : ["674032329919954944"]}, c121
@@ -82,13 +83,7 @@
 {"role": "674325736391180315", "emoji": "🦐", "addRoles" : [], "removeRoles" : ["674325935759294484"]}, c475
 {"role": "675379197824335873", "emoji": "🚀", "addRoles" : [], "removeRoles" : ["675379198650482688"]}, c491/492
 {"role": "675379319643832350", "emoji": "🚲", "addRoles" : [], "removeRoles" : ["675379896326946817"]}, c499
-{"role": "841917453634240537", "emoji": "🍎", "addRoles" : [], "removeRoles" : ["710759755940888607"]}, c(sp) ios
-{"role": "841918232675876874", "emoji": "⌨", "addRoles" : [], "removeRoles" : ["674325936782573607"]}, c(sp) human comp intrctn
-{"role": "841917813232762881", "emoji": "📐", "addRoles" : [], "removeRoles" : ["692821489044553798"]}, c(sp) data vis
-{"role": "841920733579706380", "emoji": "🗼", "addRoles" : [], "removeRoles" : ["710759367863042081"]}, c(sp) software studio
-{"role": "841920693330247711", "emoji": "🗽", "addRoles" : [], "removeRoles" : ["675374866018336768"]}, c(sp) BI tech
-{"role": "935770123237724181", "emoji": "💧", "addRoles" : [], "removeRoles" : ["935770199750242354"]}, c(sp) dist systems
+{"role": "841920733579706380", "emoji": "🐳", "addRoles" : [], "removeRoles" : ["1150186065940975707"]}, c(sp) info theory
 
-{"role": "674325937642405902", "emoji": "🐳", "addRoles" : [], "removeRoles" : []}, f311 [unused]
 {"role": "710759755940888607", "emoji": "📱", "addRoles" : [], "removeRoles" : ["841917453634240537"]}, f(sp) ios [awaiting migration]
 {"role": "674325735615496193", "emoji": "🔏", "addRoles" : [], "removeRoles" : ["674325735481147413"]}, f448 [now 348, awaiting migration]
