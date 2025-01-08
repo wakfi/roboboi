@@ -244,12 +244,12 @@ module.exports = {
 
         // Create the channel
         const channelName = getChannelName(courseId, category);
-
         const channel = await message.guild.channels.create(channelName, {
           parent: offeredChannel.id,
         });
+        const courseName = coursesBeingOffered[courseNumber];
 
-        await channel.send();
+        await channel.setTopic(courseName);
       }
 
       // Sort the channels lexicographically. This also works for non-special courses since
