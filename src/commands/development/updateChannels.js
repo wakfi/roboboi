@@ -1,3 +1,5 @@
+const result = require("./result.json");
+
 /** @typedef {{"allCourses": Object.<number, string>, "coursesBeingOffered":  Object.<number, string>}} CourseJSON */
 /** @typedef {"mainline" |  "electives" | "special" | "graduate"} CourseTopic */
 /** @typedef {{channel: string, position: number}[]} ChannelPositions */
@@ -92,28 +94,28 @@ module.exports = {
   permLevel: "Moderator",
   noArgs: true,
   async execute(message, args) {
-    // Get the file attached to the message
-    const attachmentURL = message.attachments.first()?.attachment;
+    // // Get the file attached to the message
+    // const attachmentURL = message.attachments.first()?.attachment;
 
-    if (!attachmentURL) {
-      // The user didn't attach a file, so tell them what file the command expects
-      return message.channel.send(
-        `Attachment not found! To use this command:\n1. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n2. Log in\n3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js`
-      );
-    }
-
-    /** @type {CourseJSON} */
-    const attachment = await (await fetch(attachmentURL)).json();
-
-    // Validate the attachment
-    try {
-      validateAttachment(attachment);
-    } catch (e) {
-      return message.channel.send(e.message);
-    }
+    // if (!attachmentURL) {
+    //   // The user didn't attach a file, so tell them what file the command expects
+    //   return message.channel.send(
+    //     `Attachment not found! To use this command:\n1. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n2. Log in\n3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js`
+    //   );
+    // }
 
     // /** @type {CourseJSON} */
-    // const attachment = result;
+    // const attachment = await (await fetch(attachmentURL)).json();
+
+    // // Validate the attachment
+    // try {
+    //   validateAttachment(attachment);
+    // } catch (e) {
+    //   return message.channel.send(e.message);
+    // }
+
+    /** @type {CourseJSON} */
+    const attachment = result;
 
     const mainlineCourses = [
       "121",
@@ -197,8 +199,6 @@ module.exports = {
       return courseNumber.toUpperCase() in attachment.coursesBeingOffered;
     }
 
-    offeredSpecialCourseIds.sort();
-
     /** @type {ChannelPositions} */
     const channelPositions = [];
 
@@ -209,8 +209,9 @@ module.exports = {
       const { offeredChannel, notOfferedChannel, courses } =
         categories[category];
 
-      courses.sort();
-
+      // We can have three cases:
+ 
+      // Case 1: The course channel is in the offered channel, but the course is not being offered
       for (const [_, channel] of offeredChannel.children) {
         if (channel.type !== "text") continue;
 
@@ -229,6 +230,7 @@ module.exports = {
         existingChannelIds.add(courseId);
       }
 
+      // Case 2: The course channel is in the not offered channel, but the course is being offered
       for (const [_, channel] of notOfferedChannel.children) {
         if (channel.type !== "text") continue;
 
@@ -247,22 +249,25 @@ module.exports = {
         existingChannelIds.add(courseId);
       }
 
+      // Case 3: The course isn't in either channels, but is being offered, so we need to create it
       for (const courseNumber of courses) {
-
         const channelId = getChannelId(
           courseNumber,
           attachment.coursesBeingOffered[courseNumber],
           category
         );
 
+        // Check that course is being offered
         if (!isBeingOffered(channelId, category)) {
           continue;
         }
 
+        // Check if the channel already exists
         if (existingChannelIds.has(channelId)) {
           continue;
         }
 
+        // Create the channel
         const channelName = getChannelName(channelId, category);
 
         await message.guild.channels.create(channelName, {
@@ -270,41 +275,37 @@ module.exports = {
         });
       }
 
-      let position = 0;
 
-      for (const channelNumber of courses) {
-        // Get the channel ID for the course
-        const channelId = getChannelId(
-          channelNumber,
-          attachment.coursesBeingOffered[channelNumber],
-          category
-        );
-
-        const channelName = getChannelName(channelId, category);
-
-        // Find the channel object
-        const channelObject = message.guild.channels.cache.find(
-          (channel) => channel.name === channelName
-        );
-
-        if (!channelObject) {
-          console.log(`Channel ${channelName} not found`, channelId);
-          continue;
+      // Sort the channels lexicographically. This also works for non-special courses since
+      // all the course numbers are 3 digits.
+      const offeredChannels = [...offeredChannel.children.values()].sort(
+        (a, b) => {
+          return (a.name >= b.name) ? 1 : -1;
         }
-        
-        if (category === "special") {
-          channelPositions.push({
-            channel: channelObject.id,
-            position: offeredSpecialCourseIds.indexOf(channelId),
-          });
-        } else {
-          channelPositions.push({
-            channel: channelObject.id,
-            position,
-          });
-        }
+      );
 
-        position++;
+      const notOfferedChannels= [...notOfferedChannel.children.values()].sort(
+        (a, b) => {
+          return (a.name >= b.name) ? 1 : -1;
+        }
+      );
+
+      for (let i = 0; i < offeredChannels.length; i++) {
+        const channel = offeredChannels[i];
+
+        channelPositions.push({
+          channel: channel.id,
+          position: i,
+        });
+      }
+
+      for (let i = 0; i < notOfferedChannels.length; i++) {
+        const channel = notOfferedChannels[i];
+
+        channelPositions.push({
+          channel: channel.id,
+          position: i,
+        });
       }
     }
 
