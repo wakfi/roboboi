@@ -1,7 +1,7 @@
 const configPath = `${process.cwd()}/util/components/config.json`;
 const config = require(configPath);
 
-/** @typedef {{"allCourses": Object.<number, string>, "coursesBeingOffered":  Object.<number, string>}} CourseJSON */
+/** @typedef {{"allCourses": Object.<number, string>, "coursesBeingOffered":  Object.<number, string>, "term": string}} CourseJSON */
 /** @typedef {"mainline" |  "elective" | "special" | "graduate"} CourseCategory */
 /** @typedef {{channel: string, position: number}[]} ChannelPositions */
 
@@ -13,6 +13,10 @@ const config = require(configPath);
  * @throws {Error} If the attachment is not a valid CourseJSON object
  */
 function validateAttachment(attachment) {
+  if (typeof attachment.term !== "string") {
+    throw new Error("Attachment is missing the 'term' property");
+  }
+
   const keys = ["allCourses", "coursesBeingOffered"];
 
   for (const key of keys) {
@@ -90,8 +94,8 @@ function getChannelName(courseId, category) {
 
 module.exports = {
   name: "updateCourseChannels",
-  usage: ['<commandName>'],
-	aliases: ['ucc'],
+  usage: ["<commandName>"],
+  aliases: ["ucc"],
   description: "Updates the channels for the courses",
   category: "development",
   permLevel: "Moderator",
@@ -108,7 +112,13 @@ module.exports = {
     }
 
     /** @type {CourseJSON} */
-    const attachment = await (await fetch(attachmentURL)).json();
+    let attachment;
+
+    try {
+      attachment = await (await fetch(attachmentURL)).json();
+    } catch (e) {
+      return message.reply(`Error fetching attachment: ${e.message})`);
+    }
 
     // Validate the attachment
     try {
@@ -118,8 +128,8 @@ module.exports = {
     }
 
     // Let the user know that the command is running
-    const waitingReaction = await message.react('⌛');
-    const { coursesBeingOffered, allCourses } = attachment;
+    const waitingReaction = await message.react("⌛");
+    const { coursesBeingOffered, allCourses, term } = attachment;
     const mainlineCourses = config.mainlineCourses;
     const channelCategories = Object.fromEntries(
       ["mainline", "elective", "special", "graduate"].map((category) => [
@@ -235,9 +245,11 @@ module.exports = {
         // Create the channel
         const channelName = getChannelName(courseId, category);
 
-        await message.guild.channels.create(channelName, {
+        const channel = await message.guild.channels.create(channelName, {
           parent: offeredChannel.id,
         });
+
+        await channel.send();
       }
 
       // Sort the channels lexicographically. This also works for non-special courses since
@@ -272,6 +284,32 @@ module.exports = {
           channel: channel.id,
           position: i,
         });
+      }
+
+      // Send a message to the channels of the courses that are being offered
+      for (const courseNumber of courses) {
+        const courseId = getCourseIdFromCourseNumber(
+          courseNumber,
+          coursesBeingOffered[courseNumber],
+          category
+        );
+
+        if (!offeredCourseIds.has(courseId)) {
+          continue;
+        }
+
+        const channel = message.guild.channels.cache.find(
+          (channel) => channel.name === getChannelName(courseId, category)
+        );
+
+        if (!channel) {
+          console.error(`Channel for ${courseId} not found`);
+          continue;
+        }
+
+        await channel.send(
+          `--------------------${term}--------------------`
+        );
       }
     }
 
