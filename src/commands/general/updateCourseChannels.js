@@ -161,6 +161,7 @@ module.exports = {
       }
     }
 
+    // Set of course IDs that are being offered
     const offeredCourseIds = new Set();
 
     for (const category in channelCategories) {
@@ -178,6 +179,7 @@ module.exports = {
     }
 
     /** @type {ChannelPositions} */
+    // Stores the channel positions in the category
     const channelPositions = [];
 
     for (const category in channelCategories) {
