@@ -106,7 +106,11 @@ module.exports = {
     if (!attachmentURL) {
       // The user didn't attach a file, so tell them what file the command expects
       return message.reply(
-        `Attachment not found! To use this command:\n1. Log in to Zagweb\n2. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js. After the script runs successfully, it will download a file called \`result.json\`\n4. Run this command again, but attach the downloaded \`result.json\` file`
+        "Attachment not found! To use this command:\n" +
+          "1. Log in to Zagweb\n" +
+          "2. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n" +
+          "3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js. After the script runs successfully, it will download a file called `result.json`\n" +
+          "4. Run this command again, but attach the downloaded `result.json` file"
       );
     }
 
@@ -269,10 +273,8 @@ module.exports = {
 
       for (let i = 0; i < offeredChannelChildrenSorted.length; i++) {
         const channel = offeredChannelChildrenSorted[i];
-        
-        await channel.send(
-          `--------------------${term}--------------------`
-        );
+
+        await channel.send(`--------------------${term}--------------------`);
 
         channelPositions.push({
           channelName: channel.name,
