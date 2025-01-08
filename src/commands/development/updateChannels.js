@@ -115,6 +115,8 @@ module.exports = {
       return message.channel.send(e.message);
     }
 
+    // Let the user know that the command is running
+    const waitingReaction = await message.react('⌛');
     const { coursesBeingOffered, allCourses } = attachment;
     const mainlineCourses = config.mainlineCourses;
     const channelCategories = Object.fromEntries(
@@ -271,8 +273,10 @@ module.exports = {
       }
     }
 
-
-    console.log(channelPositions);
     await message.guild.setChannelPositions(channelPositions);
+
+    // Remove the waiting reaction and add a success reaction
+    await waitingReaction.remove();
+    await message.react("✅");
   },
 };
