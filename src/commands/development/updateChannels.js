@@ -89,8 +89,10 @@ function getChannelName(courseId, category) {
 }
 
 module.exports = {
-  name: "updateChannels",
-  description: "Emergency Kill switch to restart the bot and log an error",
+  name: "updateCourseChannels",
+  usage: ['<commandName>'],
+	aliases: ['ucc'],
+  description: "Updates the channels for the courses",
   category: "development",
   permLevel: "Moderator",
   noArgs: true,
