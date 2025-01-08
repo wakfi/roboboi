@@ -1,16 +1,16 @@
 const configPath = `${process.cwd()}/util/components/config.json`;
 const config = require(configPath);
 
-/** @typedef {{"allCourses": Object.<number, string>, "coursesBeingOffered":  Object.<number, string>, "term": string}} CourseJSON */
+/** @typedef {{"allCourses": Object.<number, string>, "coursesBeingOffered":  Object.<number, string>, "term": string}} AttachmentJSON */
 /** @typedef {"mainline" |  "elective" | "special" | "graduate"} CourseCategory */
 /** @typedef {{channel: string, position: number}[]} ChannelPositions */
 
 /**
- * Validates whether the attachment is a valid CourseJSON object
+ * Validates whether the attachment is a valid AttachmentJSON object
  *
- * @param {CourseJSON} attachment
+ * @param {AttachmentJSON} attachment
  *
- * @throws {Error} If the attachment is not a valid CourseJSON object
+ * @throws {Error} If the attachment is not a valid AttachmentJSON object
  */
 function validateAttachment(attachment) {
   if (typeof attachment.term !== "string") {
@@ -110,7 +110,7 @@ module.exports = {
       );
     }
 
-    /** @type {CourseJSON} */
+    /** @type {AttachmentJSON} */
     let attachment;
 
     try {
