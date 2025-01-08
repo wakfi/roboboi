@@ -56,7 +56,6 @@ function validateAttachment(attachment) {
 function getCourseIdFromCourseNumber(courseNumber, courseName, category) {
   if (category === "special") {
     courseName = courseName.toLowerCase();
-    courseName = courseName.replaceAll("&amp;", "&");
     courseName = courseName.replaceAll(" ", "-");
     courseName = courseName.replace(/[^a-zA-Z0-9\-]/g, "");
 
