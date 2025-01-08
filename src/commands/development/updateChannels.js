@@ -1,7 +1,8 @@
-const result = require("./result.json");
+const configPath = `${process.cwd()}/util/components/config.json`;
+const config = require(configPath);
 
 /** @typedef {{"allCourses": Object.<number, string>, "coursesBeingOffered":  Object.<number, string>}} CourseJSON */
-/** @typedef {"mainline" |  "electives" | "special" | "graduate"} CourseTopic */
+/** @typedef {"mainline" |  "elective" | "special" | "graduate"} CourseCategory */
 /** @typedef {{channel: string, position: number}[]} ChannelPositions */
 
 /**
@@ -44,7 +45,7 @@ function validateAttachment(attachment) {
  * some special cases where it isn't a number, such as CPSC 491L.
  * @param {string} courseName The name of the course. Only used when the category is "special". This is done because
  * special topics courses are not always consistent in their numbering.
- * @param {CourseTopic} category The category of the course. Either "mainline", "electives", "special", or "graduate".
+ * @param {CourseCategory} category The category of the course. Either "mainline", "elective", "special", or "graduate".
  *
  * @returns {string} The channel ID for the course
  */
@@ -93,29 +94,28 @@ module.exports = {
   category: "development",
   permLevel: "Moderator",
   noArgs: true,
-  async execute(message, args) {
-    // // Get the file attached to the message
-    // const attachmentURL = message.attachments.first()?.attachment;
+  async execute(message) {
+    // Get the file attached to the message
+    const attachmentURL = message.attachments.first()?.attachment;
 
-    // if (!attachmentURL) {
-    //   // The user didn't attach a file, so tell them what file the command expects
-    //   return message.channel.send(
-    //     `Attachment not found! To use this command:\n1. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n2. Log in\n3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js`
-    //   );
-    // }
-
-    // /** @type {CourseJSON} */
-    // const attachment = await (await fetch(attachmentURL)).json();
-
-    // // Validate the attachment
-    // try {
-    //   validateAttachment(attachment);
-    // } catch (e) {
-    //   return message.channel.send(e.message);
-    // }
+    if (!attachmentURL) {
+      // The user didn't attach a file, so tell them what file the command expects
+      return message.channel.send(
+        `Attachment not found! To use this command:\n1. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n2. Log in\n3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js`
+      );
+    }
 
     /** @type {CourseJSON} */
-    const attachment = result;
+    const attachment = await (await fetch(attachmentURL)).json();
+
+    // Validate the attachment
+    try {
+      validateAttachment(attachment);
+    } catch (e) {
+      return message.channel.send(e.message);
+    }
+
+    const { coursesBeingOffered, allCourses } = attachment;
 
     const mainlineCourses = [
       "121",
@@ -135,60 +135,40 @@ module.exports = {
       "499",
     ];
 
-    const categories = {
-      mainline: {
-        offeredChannel: message.guild.channels.cache.get("1326315549185282048"),
-        notOfferedChannel: message.guild.channels.cache.get(
-          "1326315602603933828"
-        ),
-        courses: [],
-      },
-      electives: {
-        offeredChannel: message.guild.channels.cache.get("1326331554003423316"),
-        notOfferedChannel: message.guild.channels.cache.get(
-          "1326331623163297852"
-        ),
-        courses: [],
-      },
-      special: {
-        offeredChannel: message.guild.channels.cache.get("1326335649661321248"),
-        notOfferedChannel: message.guild.channels.cache.get(
-          "1326335681466732544"
-        ),
-        courses: [],
-      },
-      graduate: {
-        offeredChannel: message.guild.channels.cache.get("1326335712013975685"),
-        notOfferedChannel: message.guild.channels.cache.get(
-          "1326335739461500948"
-        ),
-        courses: [],
-      },
-    };
+    const channelCategories = Object.fromEntries(
+      ["mainline", "elective", "special", "graduate"].map((category) => [
+        category,
+        {
+          offeredChannel: message.guild.channels.cache.get(
+            config.courseCategories[category].offered
+          ),
+          notOfferedChannel: message.guild.channels.cache.get(
+            config.courseCategories[category].notOffered
+          ),
+          courses: [],
+        },
+      ])
+    );
 
     // Add courses to their respective categories
-    for (const courseNumber in attachment.coursesBeingOffered) {
+    for (const courseNumber in coursesBeingOffered) {
       if (mainlineCourses.includes(courseNumber)) {
-        categories.mainline.courses.push(courseNumber);
+        channelCategories.mainline.courses.push(courseNumber);
       } else if (parseInt(courseNumber) >= 500) {
-        categories.graduate.courses.push(courseNumber);
+        channelCategories.graduate.courses.push(courseNumber);
       } else if (
-        attachment.allCourses[courseNumber].includes("Special Topics") ||
-        attachment.allCourses[courseNumber].includes("Advanced Topics")
+        allCourses[courseNumber].includes("Special Topics") ||
+        allCourses[courseNumber].includes("Advanced Topics")
       ) {
-        categories.special.courses.push(courseNumber);
+        channelCategories.special.courses.push(courseNumber);
       } else {
-        categories.electives.courses.push(courseNumber);
+        channelCategories.elective.courses.push(courseNumber);
       }
     }
 
-    const offeredSpecialCourseIds = categories.special.courses.map(
+    const offeredSpecialCourseIds = channelCategories.special.courses.map(
       (courseNumber) =>
-        getChannelId(
-          courseNumber,
-          attachment.coursesBeingOffered[courseNumber],
-          "special"
-        )
+        getChannelId(courseNumber, coursesBeingOffered[courseNumber], "special")
     );
 
     function isBeingOffered(courseNumber, category) {
@@ -196,18 +176,20 @@ module.exports = {
         return offeredSpecialCourseIds.includes(courseNumber);
       }
 
-      return courseNumber.toUpperCase() in attachment.coursesBeingOffered;
+      // We need to check the upper case version of the course "number" because discord
+      // channel names are lowercase and the course numbers are uppercase
+      return courseNumber.toUpperCase() in coursesBeingOffered;
     }
 
     /** @type {ChannelPositions} */
     const channelPositions = [];
 
-    for (const category in categories) {
+    for (const category in channelCategories) {
       // Stores whether a channel already exists for a course number
       const existingChannelIds = new Set();
 
       const { offeredChannel, notOfferedChannel, courses } =
-        categories[category];
+        channelCategories[category];
 
       const offeredChannelChildrenSorted = [
         ...offeredChannel.children.values(),
@@ -265,7 +247,7 @@ module.exports = {
       for (const courseNumber of courses) {
         const channelId = getChannelId(
           courseNumber,
-          attachment.coursesBeingOffered[courseNumber],
+          coursesBeingOffered[courseNumber],
           category
         );
 
