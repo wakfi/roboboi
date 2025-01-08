@@ -99,10 +99,8 @@ function getCourseIdFromCourseNumber(courseNumber, courseName, category) {
  * @returns {string} The course ID
  */
 function getCourseIdFromChannel(channel) {
-  for (const courseId in courseMapping) {
-    if (courseMapping[courseId] === channel.id) {
-      return courseId;
-    }
+  if(channel.id in courseMapping) {
+    return courseMapping[channel.id];
   }
 
   throw new Error(
@@ -215,13 +213,13 @@ async function rearrange(message, nameSyntax, channelCategories) {
     return;
   }
 
-  const { coursesBeingOffered, term } = attachment;
+  const { coursesBeingOffered, allCourses, term } = attachment;
 
   // Add courses to their respective categories
   for (const courseNumber in coursesBeingOffered) {
     const category = categorizeCourse(
       courseNumber,
-      coursesBeingOffered[courseNumber]
+      allCourses[courseNumber]
     );
     channelCategories[category].courses.push(courseNumber);
   }
@@ -319,7 +317,7 @@ async function rearrange(message, nameSyntax, channelCategories) {
       });
 
       // Add the course to the course mapping
-      courseMapping[courseId] = channel.id;
+      courseMapping[channel.id] = courseId;
 
       await channel.setTopic(courseName);
     }
@@ -400,6 +398,14 @@ async function rename(message, nameSyntax, channelCategories) {
     for (const channel of allChannels) {
       const courseId = getCourseIdFromChannel(channel);
       const courseName = courseIdToName.get(courseId);
+
+      if (!courseName) {
+        console.error(
+          `Course ID ${courseId} does not have a corresponding course name`
+        );
+        continue
+      }
+
       await channel.setName(
         getChannelNameFromSyntax(courseId, courseName, nameSyntax, null)
       );
@@ -422,6 +428,12 @@ async function reset(channelCategories) {
       await channel.delete();
     }
   }
+
+  for(const key in courseMapping) {
+    delete courseMapping[key];
+  }
+
+  await saveCourseMapping();
 }
 
 async function changeSyntax(message, args) {
@@ -429,7 +441,7 @@ async function changeSyntax(message, args) {
     return message.reply(
       "Invalid number of arguments. Expected only one argument: `changeSyntax <syntax>`\n" +
         "Example: `changeSyntax cpsc-{{number}}-{{name}}`\n" +
-        "This will change the channel name to something like `cpsc-121-introduction-to-computer-science`. Run `!updateCourseChannels rename` to apply the changes."
+        "This will change the channel name to something like `cpsc-121-computer-science-i`. Run `!updateCourseChannels rename` to apply the changes."
     );
   }
 
@@ -439,7 +451,7 @@ async function changeSyntax(message, args) {
 
 module.exports = {
   name: "updateCourseChannels",
-  usage: ["<commandName> [rearrange|rename|reset] [nameSyntax]"],
+  usage: ["<commandName> [rearrange|rename|changeSyntax] [nameSyntax]"],
   aliases: ["ucc"],
   description: "Updates the channels for the courses",
   category: "development",
@@ -466,16 +478,16 @@ module.exports = {
 
     switch(action) {
       case "rename":
-        rename(message, nameSyntax, channelCategories);
+        await rename(message, nameSyntax, channelCategories);
         break;
       case "changeSyntax":
-        changeSyntax(message, args);
+        await changeSyntax(message, args);
         break;
       case "reset":
-        reset(channelCategories);
+        await reset(channelCategories);
         break;
       case "rearrange":
-        rearrange(message, nameSyntax, channelCategories);
+        await rearrange(message, nameSyntax, channelCategories);
         break;
       default:
         message.reply("Invalid action. Expected one of `rename`, `rearrange`, or `changeSyntax`");
