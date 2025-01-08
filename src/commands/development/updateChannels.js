@@ -1,6 +1,6 @@
-const result = require("./result.json");
-
 /** @typedef {{"allCourses": Object.<number, string>, "coursesBeingOffered":  Object.<number, string>}} CourseJSON */
+/** @typedef {"mainline" |  "electives" | "special" | "graduate"} CourseTopic */
+/** @typedef {{channel: string, position: number}[]} ChannelPositions */
 
 /**
  * Validates whether the attachment is a valid CourseJSON object
@@ -35,23 +35,48 @@ function validateAttachment(attachment) {
   }
 }
 
+/**
+ * Returns the channel ID for a course
+ *
+ * @param {string} courseNumber The course number. For example, CPSC 121's course number is 121. There are
+ * some special cases where it isn't a number, such as CPSC 491L.
+ * @param {string} courseName The name of the course. Only used when the category is "special". This is done because
+ * special topics courses are not always consistent in their numbering.
+ * @param {CourseTopic} category The category of the course. Either "mainline", "electives", "special", or "graduate".
+ *
+ * @returns {string} The channel ID for the course
+ */
 function getChannelId(courseNumber, courseName, category) {
   if (category === "special") {
     courseName = courseName.toLowerCase();
     courseName = courseName.replaceAll("&amp;", "&");
     courseName = courseName.replaceAll(" ", "-");
     courseName = courseName.replace(/[^a-zA-Z0-9\-]/g, "");
-  
+
     return courseName;
   }
 
   return courseNumber.toLowerCase();
 }
 
-function getCourseIdFromChannelName(channelName) {
+/**
+ * Gets the course ID from a channel name
+ *
+ * @param {string} channelName The name of the channel
+ *
+ * @returns {string} The course ID
+ */
+function getCourseId(channelName) {
   return channelName.replace("cpsc-", "").toLowerCase();
 }
 
+/**
+ * Gets the channel name from a course ID
+ *
+ * @param {string} courseId The course ID
+ *
+ * @returns {string} The channel name
+ */
 function getChannelName(courseId, category) {
   if (category === "special") {
     return courseId;
@@ -67,25 +92,28 @@ module.exports = {
   permLevel: "Moderator",
   noArgs: true,
   async execute(message, args) {
-    // // Get the file attached to the message
-    // const attachmentURL = message.attachments.first()?.attachment;
+    // Get the file attached to the message
+    const attachmentURL = message.attachments.first()?.attachment;
 
-    // if (!attachmentURL) {
-    //   return message.channel.send(
-    //     `Attachment not found! To use this command:\n1. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n2. Log in\n3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js`
-    //   );
-    // }
+    if (!attachmentURL) {
+      // The user didn't attach a file, so tell them what file the command expects
+      return message.channel.send(
+        `Attachment not found! To use this command:\n1. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n2. Log in\n3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js`
+      );
+    }
+
+    /** @type {CourseJSON} */
+    const attachment = await (await fetch(attachmentURL)).json();
+
+    // Validate the attachment
+    try {
+      validateAttachment(attachment);
+    } catch (e) {
+      return message.channel.send(e.message);
+    }
 
     // /** @type {CourseJSON} */
-    // const attachment = await (await fetch(attachmentURL)).json();
-    /** @type {CourseJSON} */
-    const attachment = result;
-
-    // try {
-    //   validateAttachment(attachment);
-    // } catch (e) {
-    //   return message.channel.send(e.message);
-    // }
+    // const attachment = result;
 
     const mainlineCourses = [
       "121",
@@ -136,6 +164,7 @@ module.exports = {
       },
     };
 
+    // Add courses to their respective categories
     for (const courseNumber in attachment.coursesBeingOffered) {
       if (mainlineCourses.includes(courseNumber)) {
         categories.mainline.courses.push(courseNumber);
@@ -169,66 +198,57 @@ module.exports = {
     }
 
     offeredSpecialCourseIds.sort();
+
+    /** @type {ChannelPositions} */
     const channelPositions = [];
 
     for (const category in categories) {
-      // // Reset
-      // for (const [_, channel] of categories[category].offeredChannel.children) {
-      //   if (channel.type !== "text") continue;
-
-      //   await channel.delete();
-      // }
-
-      // for (const [_, channel] of categories[category].notOfferedChannel.children) {
-      //   if (channel.type !== "text") continue;
-
-      //   await channel.delete();
-      // }
-
-      const existingChannelNames = new Set();
+      // Stores whether a channel already exists for a course number
+      const existingChannelIds = new Set();
 
       const { offeredChannel, notOfferedChannel, courses } =
         categories[category];
 
-      courses.sort()
+      courses.sort();
 
       for (const [_, channel] of offeredChannel.children) {
         if (channel.type !== "text") continue;
 
+        // Get the course ID from the channel name
         const channelName = channel.name;
-        const courseNumber = getCourseIdFromChannelName(
-          channelName,
-          category
-        );
+        const courseId = getCourseId(channelName, category);
 
-        if (!courseNumber) continue;
+        if (!courseId) continue;
 
-        if (!isBeingOffered(courseNumber, category)) {
+        if (!isBeingOffered(courseId, category)) {
+          // If it's not being offered, move it to the not offered channel
           await channel.setParent(notOfferedChannel.id);
         }
 
-        existingChannelNames.add(courseNumber);
+        // Update the set of existing channel names
+        existingChannelIds.add(courseId);
       }
 
       for (const [_, channel] of notOfferedChannel.children) {
         if (channel.type !== "text") continue;
 
+        // Get the course ID from the channel name
         const channelName = channel.name;
-        const courseNumber = getCourseIdFromChannelName(
-          channelName,
-          category
-        );
+        const courseId = getCourseId(channelName, category);
 
-        if (!courseNumber) continue;
+        if (!courseId) continue;
 
-        if (isBeingOffered(courseNumber, category)) {
+        if (isBeingOffered(courseId, category)) {
+          // If it is being offered, move it to the offered channel
           await channel.setParent(offeredChannel.id);
         }
 
-        existingChannelNames.add(courseNumber);
+        // Update the set of existing channel names
+        existingChannelIds.add(courseId);
       }
 
       for (const courseNumber of courses) {
+
         const channelId = getChannelId(
           courseNumber,
           attachment.coursesBeingOffered[courseNumber],
@@ -239,7 +259,7 @@ module.exports = {
           continue;
         }
 
-        if (existingChannelNames.has(channelId)) {
+        if (existingChannelIds.has(channelId)) {
           continue;
         }
 
@@ -251,9 +271,9 @@ module.exports = {
       }
 
       let position = 0;
-      
-      for(const channelNumber of courses)
-      {
+
+      for (const channelNumber of courses) {
+        // Get the channel ID for the course
         const channelId = getChannelId(
           channelNumber,
           attachment.coursesBeingOffered[channelNumber],
@@ -262,6 +282,7 @@ module.exports = {
 
         const channelName = getChannelName(channelId, category);
 
+        // Find the channel object
         const channelObject = message.guild.channels.cache.find(
           (channel) => channel.name === channelName
         );
@@ -270,8 +291,8 @@ module.exports = {
           console.log(`Channel ${channelName} not found`, channelId);
           continue;
         }
-
-        if(category === "special") {
+        
+        if (category === "special") {
           channelPositions.push({
             channel: channelObject.id,
             position: offeredSpecialCourseIds.indexOf(channelId),
@@ -283,8 +304,7 @@ module.exports = {
           });
         }
 
-
-        position++
+        position++;
       }
     }
 
