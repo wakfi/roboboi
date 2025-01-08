@@ -8,11 +8,12 @@ const fs = require("fs/promises");
 
 const courseMappingPath = `${process.cwd()}/util/components/courseMapping.json`;
 const courseMapping = require(courseMappingPath);
+const mainlineCourses = config.mainlineCourses;
 
 /**
  * Saves the course mapping to the file
  */
-async function saveCourseMapping() { 
+async function saveCourseMapping() {
   await fs.writeFile(courseMappingPath, JSON.stringify(courseMapping, null, 2));
 }
 
@@ -54,6 +55,20 @@ function validateAttachment(attachment) {
 }
 
 /**
+ * Normalizes a course name. This is basically what the channel name will get converted to since
+ * discord channel names can't have certain characters.
+ * 
+ * @param {string} courseName The course name to normalize 
+ * @returns {string} The normalized course name
+ */
+function normalizeCourseName(courseName) {
+  return courseName
+    .toLowerCase()
+    .replace(/[ /&]/g, "-")
+    .replace(/[^a-zA-Z0-9\-]/g, "");
+}
+
+/**
  * Returns the channel ID for a course
  *
  * @param {string} courseNumber The course number. For example, CPSC 121's course number is 121. There are
@@ -66,11 +81,7 @@ function validateAttachment(attachment) {
  */
 function getCourseIdFromCourseNumber(courseNumber, courseName, category) {
   if (category === "special") {
-    courseName = courseName.toLowerCase();
-    courseName = courseName.replaceAll(" ", "-");
-    courseName = courseName.replace(/[^a-zA-Z0-9\-]/g, "");
-
-    return courseName;
+    return normalizeCourseName(courseName);
   }
 
   return courseNumber.toLowerCase();
@@ -84,13 +95,15 @@ function getCourseIdFromCourseNumber(courseNumber, courseName, category) {
  * @returns {string} The course ID
  */
 function getCourseIdFromChannel(channel) {
-  for(const courseId in courseMapping) {
+  for (const courseId in courseMapping) {
     if (courseMapping[courseId] === channel.id) {
       return courseId;
     }
   }
 
-  throw new Error(`Channel ${channel.name} does not have a corresponding course ID`);
+  throw new Error(
+    `Channel ${channel.name} does not have a corresponding course ID`
+  );
 }
 
 /**
@@ -101,24 +114,69 @@ function getCourseIdFromChannel(channel) {
  * @returns {string} The channel name
  */
 function getChannelName(courseId, courseName, category) {
-  courseName = courseName.toLowerCase();
-  courseName = courseName.replaceAll(" ", "-");
-  courseName = courseName.replace(/[^a-zA-Z0-9\-]/g, "");
-
-  return courseName;
+  if(category === "special") {
+    return normalizeCourseName(courseName);
+  }
 
   return `cpsc-${courseId}`;
 }
 
+/**
+ * Categorizes a course into one of the following categories:
+ * - mainline
+ * - graduate
+ * - special
+ * - elective
+ * 
+ * @param {string} courseNumber The course number
+ * @param {string} courseName The course name
+ * @returns 
+ */
+function categorizeCourse(courseNumber, courseName) {
+  if (mainlineCourses.includes(courseNumber)) {
+    return "mainline";
+  } else if (parseInt(courseNumber) >= 500) {
+    return "graduate";
+  } else if (
+    courseName.includes("Special Topics") ||
+    courseName.includes("Advanced Topics")
+  ) {
+    return "special";
+  } else {
+    return "elective";
+  }
+}
+
+/**
+ * @param {string} courseNumber The course number
+ * @param {string} courseName The course name
+ * @param {string} syntax The syntax to use for the channel name. For example, `cpsc-{{number}}-{{name}}`
+ * would be transformedto `cpsc-121-introduction-to-computer-science`.
+ * @param {CourseCategory} category The category of the course
+ * 
+ * @returns {string} The channel name
+ */
+function getChannelNameFromSyntax(courseNumber, courseName, syntax, category) {
+  if (!syntax) {
+    return getChannelName(courseNumber, courseName, category);
+  }
+
+  const normalizedCourseName = normalizeCourseName(courseName);
+
+  return syntax
+    .replaceAll("{{number}}", courseNumber)
+    .replaceAll("{{name}}", normalizedCourseName);
+}
+
 module.exports = {
   name: "updateCourseChannels",
-  usage: ["<commandName>"],
+  usage: ["<commandName> [rearrange|rename|reset] [nameSyntax]"],
   aliases: ["ucc"],
   description: "Updates the channels for the courses",
   category: "development",
   permLevel: "Moderator",
-  noArgs: true,
-  async execute(message) {
+  noArgs: false,
+  async execute(message, args) {
     // Get the file attached to the message
     const attachmentURL = message.attachments.first()?.attachment;
 
@@ -152,7 +210,6 @@ module.exports = {
     // Let the user know that the command is running
     const waitingReaction = await message.react("⌛");
     const { coursesBeingOffered, allCourses, term } = attachment;
-    const mainlineCourses = config.mainlineCourses;
     const channelCategories = Object.fromEntries(
       ["mainline", "elective", "special", "graduate"].map((category) => [
         category,
@@ -170,22 +227,16 @@ module.exports = {
 
     // Add courses to their respective categories
     for (const courseNumber in coursesBeingOffered) {
-      if (mainlineCourses.includes(courseNumber)) {
-        channelCategories.mainline.courses.push(courseNumber);
-      } else if (parseInt(courseNumber) >= 500) {
-        channelCategories.graduate.courses.push(courseNumber);
-      } else if (
-        allCourses[courseNumber].includes("Special Topics") ||
-        allCourses[courseNumber].includes("Advanced Topics")
-      ) {
-        channelCategories.special.courses.push(courseNumber);
-      } else {
-        channelCategories.elective.courses.push(courseNumber);
-      }
+      const category = categorizeCourse(
+        courseNumber,
+        coursesBeingOffered[courseNumber]
+      );
+      channelCategories[category].courses.push(courseNumber);
     }
 
     // Set of course IDs that are being offered
     const offeredCourseIds = new Set();
+    const courseIdToName = new Map();
 
     for (const category in channelCategories) {
       const { courses } = channelCategories[category];
@@ -201,32 +252,62 @@ module.exports = {
       }
     }
 
+    for (const courseNumber in allCourses) {
+      const courseName =
+        coursesBeingOffered[courseNumber] || allCourses[courseNumber];
+
+      // We need to pass the allCourses name since categorizeCourse uses the generic course name
+      // to identify special topics courses
+      const category = categorizeCourse(courseNumber, allCourses[courseNumber]);
+      const courseId = getCourseIdFromCourseNumber(
+        courseNumber,
+        courseName,
+        category
+      );
+
+      // Add the course to the mapping
+      courseIdToName.set(courseId, courseName);
+    }
+
     /** @type {ChannelPositions} */
     // Stores the channel positions in the category
     const channelPositions = [];
+    const action = args[0] || "rearrange";
+    const renameSyntax = args[1];
 
     for (const category in channelCategories) {
-      // // Reset
-      // for (const [_, channel] of channelCategories[category].offeredChannel.children) {
-      //   if (channel.type !== "text") continue;
-
-      //   await channel.delete();
-      // }
-
-      // for (const [_, channel] of channelCategories[category].notOfferedChannel.children) {
-      //   if (channel.type !== "text") continue;
-
-      //   await channel.delete();
-      // }
-      // continue
-
-
       // Stores whether a channel already exists for a course number
       const existingChannelIds = new Set();
-
       const { offeredChannel, notOfferedChannel, courses } =
         channelCategories[category];
 
+      if (action === "rename") {
+        const allChannels = [
+          ...offeredChannel.children.values(),
+          ...notOfferedChannel.children.values(),
+        ];
+
+        for (const channel of allChannels) {
+          const courseId = getCourseIdFromChannel(channel);
+          const courseName = courseIdToName.get(courseId);
+          await channel.setName(
+            getChannelNameFromSyntax(courseId, courseName, renameSyntax)
+          );
+        }
+
+        continue;
+      }
+      // else if (action === "reset") {
+      //   for (const channel of [
+      //     ...offeredChannel.children.values(),
+      //     ...notOfferedChannel.children.values(),
+      //   ]) {
+      //     await channel.delete();
+      //   }
+      //   continue;
+      // }
+
+      // Rearrage and add channels
       // We can have three cases:
 
       // Case 1: The course channel is in the offered channel, but the course is not being offered
@@ -281,7 +362,12 @@ module.exports = {
 
         // Create the channel
         const courseName = coursesBeingOffered[courseNumber];
-        const channelName = getChannelName(courseId, courseName, category);
+        const channelName = getChannelNameFromSyntax(
+          courseId,
+          courseName,
+          renameSyntax,
+          category
+        );
         const channel = await message.guild.channels.create(channelName, {
           parent: offeredChannel.id,
         });
