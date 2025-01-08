@@ -268,6 +268,10 @@ module.exports = {
 
       for (let i = 0; i < offeredChannelChildrenSorted.length; i++) {
         const channel = offeredChannelChildrenSorted[i];
+        
+        await channel.send(
+          `--------------------${term}--------------------`
+        );
 
         channelPositions.push({
           channelName: channel.name,
@@ -284,32 +288,6 @@ module.exports = {
           channel: channel.id,
           position: i,
         });
-      }
-
-      // Send a message to the channels of the courses that are being offered
-      for (const courseNumber of courses) {
-        const courseId = getCourseIdFromCourseNumber(
-          courseNumber,
-          coursesBeingOffered[courseNumber],
-          category
-        );
-
-        if (!offeredCourseIds.has(courseId)) {
-          continue;
-        }
-
-        const channel = message.guild.channels.cache.find(
-          (channel) => channel.name === getChannelName(courseId, category)
-        );
-
-        if (!channel) {
-          console.error(`Channel for ${courseId} not found`);
-          continue;
-        }
-
-        await channel.send(
-          `--------------------${term}--------------------`
-        );
       }
     }
 
