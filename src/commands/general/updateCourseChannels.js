@@ -1,9 +1,20 @@
-const configPath = `${process.cwd()}/util/components/config.json`;
+const configPath = `${process.cwd()}/util/components/course.json`;
 const config = require(configPath);
+const fs = require("fs/promises");
 
 /** @typedef {{"allCourses": Object.<number, string>, "coursesBeingOffered":  Object.<number, string>, "term": string}} AttachmentJSON */
 /** @typedef {"mainline" |  "elective" | "special" | "graduate"} CourseCategory */
 /** @typedef {{channel: string, position: number}[]} ChannelPositions */
+
+const courseMappingPath = `${process.cwd()}/util/components/courseMapping.json`;
+const courseMapping = require(courseMappingPath);
+
+/**
+ * Saves the course mapping to the file
+ */
+async function saveCourseMapping() { 
+  await fs.writeFile(courseMappingPath, JSON.stringify(courseMapping, null, 2));
+}
 
 /**
  * Validates whether the attachment is a valid AttachmentJSON object
@@ -68,12 +79,18 @@ function getCourseIdFromCourseNumber(courseNumber, courseName, category) {
 /**
  * Gets the course ID from a channel name
  *
- * @param {string} channelName The name of the channel
+ * @param {*} channelName The name of the channel
  *
  * @returns {string} The course ID
  */
-function getCourseIdFromChannelName(channelName) {
-  return channelName.replace("cpsc-", "");
+function getCourseIdFromChannel(channel) {
+  for(const courseId in courseMapping) {
+    if (courseMapping[courseId] === channel.id) {
+      return courseId;
+    }
+  }
+
+  throw new Error(`Channel ${channel.name} does not have a corresponding course ID`);
 }
 
 /**
@@ -83,10 +100,12 @@ function getCourseIdFromChannelName(channelName) {
  *
  * @returns {string} The channel name
  */
-function getChannelName(courseId, category) {
-  if (category === "special") {
-    return courseId;
-  }
+function getChannelName(courseId, courseName, category) {
+  courseName = courseName.toLowerCase();
+  courseName = courseName.replaceAll(" ", "-");
+  courseName = courseName.replace(/[^a-zA-Z0-9\-]/g, "");
+
+  return courseName;
 
   return `cpsc-${courseId}`;
 }
@@ -187,6 +206,21 @@ module.exports = {
     const channelPositions = [];
 
     for (const category in channelCategories) {
+      // // Reset
+      // for (const [_, channel] of channelCategories[category].offeredChannel.children) {
+      //   if (channel.type !== "text") continue;
+
+      //   await channel.delete();
+      // }
+
+      // for (const [_, channel] of channelCategories[category].notOfferedChannel.children) {
+      //   if (channel.type !== "text") continue;
+
+      //   await channel.delete();
+      // }
+      // continue
+
+
       // Stores whether a channel already exists for a course number
       const existingChannelIds = new Set();
 
@@ -198,8 +232,7 @@ module.exports = {
       // Case 1: The course channel is in the offered channel, but the course is not being offered
       for (const channel of offeredChannel.children.values()) {
         // Get the course ID from the channel name
-        const channelName = channel.name;
-        const courseId = getCourseIdFromChannelName(channelName, category);
+        const courseId = getCourseIdFromChannel(channel, category);
 
         if (!courseId) continue;
 
@@ -215,8 +248,7 @@ module.exports = {
       // Case 2: The course channel is in the not offered channel, but the course is being offered
       for (const channel of notOfferedChannel.children.values()) {
         // Get the course ID from the channel name
-        const channelName = channel.name;
-        const courseId = getCourseIdFromChannelName(channelName, category);
+        const courseId = getCourseIdFromChannel(channel, category);
 
         if (!courseId) continue;
 
@@ -248,11 +280,14 @@ module.exports = {
         }
 
         // Create the channel
-        const channelName = getChannelName(courseId, category);
+        const courseName = coursesBeingOffered[courseNumber];
+        const channelName = getChannelName(courseId, courseName, category);
         const channel = await message.guild.channels.create(channelName, {
           parent: offeredChannel.id,
         });
-        const courseName = coursesBeingOffered[courseNumber];
+
+        // Add the course to the course mapping
+        courseMapping[courseId] = channel.id;
 
         await channel.setTopic(courseName);
       }
@@ -277,7 +312,6 @@ module.exports = {
         await channel.send(`--------------------${term}--------------------`);
 
         channelPositions.push({
-          channelName: channel.name,
           channel: channel.id,
           position: i,
         });
@@ -287,13 +321,13 @@ module.exports = {
         const channel = notOfferedChannelChildrenSorted[i];
 
         channelPositions.push({
-          channelName: channel.name,
           channel: channel.id,
           position: i,
         });
       }
     }
 
+    await saveCourseMapping();
     await message.guild.setChannelPositions(channelPositions);
 
     // Remove the waiting reaction and add a success reaction
