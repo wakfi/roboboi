@@ -17,6 +17,10 @@ async function saveCourseMapping() {
   await fs.writeFile(courseMappingPath, JSON.stringify(courseMapping, null, 2));
 }
 
+async function saveConfig() {
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2));
+}
+
 /**
  * Validates whether the attachment is a valid AttachmentJSON object
  *
@@ -57,8 +61,8 @@ function validateAttachment(attachment) {
 /**
  * Normalizes a course name. This is basically what the channel name will get converted to since
  * discord channel names can't have certain characters.
- * 
- * @param {string} courseName The course name to normalize 
+ *
+ * @param {string} courseName The course name to normalize
  * @returns {string} The normalized course name
  */
 function normalizeCourseName(courseName) {
@@ -114,7 +118,7 @@ function getCourseIdFromChannel(channel) {
  * @returns {string} The channel name
  */
 function getChannelName(courseId, courseName, category) {
-  if(category === "special") {
+  if (category === "special") {
     return normalizeCourseName(courseName);
   }
 
@@ -127,10 +131,10 @@ function getChannelName(courseId, courseName, category) {
  * - graduate
  * - special
  * - elective
- * 
+ *
  * @param {string} courseNumber The course number
  * @param {string} courseName The course name
- * @returns 
+ * @returns
  */
 function categorizeCourse(courseNumber, courseName) {
   if (mainlineCourses.includes(courseNumber)) {
@@ -153,7 +157,7 @@ function categorizeCourse(courseNumber, courseName) {
  * @param {string} syntax The syntax to use for the channel name. For example, `cpsc-{{number}}-{{name}}`
  * would be transformedto `cpsc-121-introduction-to-computer-science`.
  * @param {CourseCategory} category The category of the course
- * 
+ *
  * @returns {string} The channel name
  */
 function getChannelNameFromSyntax(courseNumber, courseName, syntax, category) {
@@ -168,6 +172,271 @@ function getChannelNameFromSyntax(courseNumber, courseName, syntax, category) {
     .replaceAll("{{name}}", normalizedCourseName);
 }
 
+async function parseAttachment(message) {
+  // Get the file attached to the message
+  const attachmentURL = message.attachments.first()?.attachment;
+
+  if (!attachmentURL) {
+    // The user didn't attach a file, so tell them what file the command expects
+    message.reply(
+      "Attachment not found! To use this command:\n" +
+        "1. Log in to Zagweb\n" +
+        "2. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n" +
+        "3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js. After the script runs successfully, it will download a file called `result.json`\n" +
+        "4. Run this command again, but attach the downloaded `result.json` file"
+    );
+    return undefined;
+  }
+
+  /** @type {AttachmentJSON} */
+  let attachment;
+
+  try {
+    attachment = await (await fetch(attachmentURL)).json();
+  } catch (e) {
+    message.reply(`Error fetching attachment: ${e.message})`);
+    return undefined;
+  }
+
+  // Validate the attachment
+  try {
+    validateAttachment(attachment);
+  } catch (e) {
+    message.reply(e.message);
+    return undefined;
+  }
+
+  return attachment;
+}
+
+async function rearrange(message, nameSyntax, channelCategories) {
+  const attachment = await parseAttachment(message);
+  if (!attachment) {
+    return;
+  }
+
+  const { coursesBeingOffered, term } = attachment;
+
+  // Add courses to their respective categories
+  for (const courseNumber in coursesBeingOffered) {
+    const category = categorizeCourse(
+      courseNumber,
+      coursesBeingOffered[courseNumber]
+    );
+    channelCategories[category].courses.push(courseNumber);
+  }
+
+  // Set of course IDs that are being offered
+  const offeredCourseIds = new Set();
+
+  for (const category in channelCategories) {
+    const { courses } = channelCategories[category];
+
+    for (const courseNumber of courses) {
+      offeredCourseIds.add(
+        getCourseIdFromCourseNumber(
+          courseNumber,
+          coursesBeingOffered[courseNumber],
+          category
+        )
+      );
+    }
+  }
+
+  /** @type {ChannelPositions} */
+  // Stores the channel positions in the category
+  const channelPositions = [];
+
+  // Action rearrange onwards
+  for (const category in channelCategories) {
+    // Stores whether a channel already exists for a course number
+    const existingChannelIds = new Set();
+    const { offeredChannel, notOfferedChannel, courses } =
+      channelCategories[category];
+
+    // Rearrage and add channels
+    // We can have three cases:
+    // Case 1: The course channel is in the offered channel, but the course is not being offered
+    for (const channel of offeredChannel.children.values()) {
+      // Get the course ID from the channel name
+      const courseId = getCourseIdFromChannel(channel);
+
+      if (!courseId) continue;
+
+      if (!offeredCourseIds.has(courseId)) {
+        // If it's not being offered, move it to the not offered channel
+        await channel.setParent(notOfferedChannel.id);
+      }
+
+      // Update the set of existing channel names
+      existingChannelIds.add(courseId);
+    }
+
+    // Case 2: The course channel is in the not offered channel, but the course is being offered
+    for (const channel of notOfferedChannel.children.values()) {
+      // Get the course ID from the channel name
+      const courseId = getCourseIdFromChannel(channel);
+
+      if (!courseId) continue;
+
+      if (offeredCourseIds.has(courseId)) {
+        // If it is being offered, move it to the offered channel
+        await channel.setParent(offeredChannel.id);
+      }
+
+      // Update the set of existing channel names
+      existingChannelIds.add(courseId);
+    }
+
+    // Case 3: The course isn't in either channels, but is being offered, so we need to create it
+    for (const courseNumber of courses) {
+      const courseId = getCourseIdFromCourseNumber(
+        courseNumber,
+        coursesBeingOffered[courseNumber],
+        category
+      );
+
+      // Check that course is being offered
+      if (!offeredCourseIds.has(courseId)) {
+        continue;
+      }
+
+      // Check if the channel already exists
+      if (existingChannelIds.has(courseId)) {
+        continue;
+      }
+
+      // Create the channel
+      const courseName = coursesBeingOffered[courseNumber];
+      const channelName = getChannelNameFromSyntax(
+        courseId,
+        courseName,
+        nameSyntax,
+        category
+      );
+      const channel = await message.guild.channels.create(channelName, {
+        parent: offeredChannel.id,
+      });
+
+      // Add the course to the course mapping
+      courseMapping[courseId] = channel.id;
+
+      await channel.setTopic(courseName);
+    }
+
+    // Sort the channels lexicographically. This also works for non-special courses since
+    // all the course numbers are 3 digits.
+    const offeredChannelChildrenSorted = [
+      ...offeredChannel.children.values(),
+    ].sort((a, b) => {
+      return a.name >= b.name ? 1 : -1;
+    });
+
+    const notOfferedChannelChildrenSorted = [
+      ...notOfferedChannel.children.values(),
+    ].sort((a, b) => {
+      return a.name >= b.name ? 1 : -1;
+    });
+
+    for (let i = 0; i < offeredChannelChildrenSorted.length; i++) {
+      const channel = offeredChannelChildrenSorted[i];
+
+      await channel.send(`--------------------${term}--------------------`);
+
+      channelPositions.push({
+        channel: channel.id,
+        position: i,
+      });
+    }
+
+    for (let i = 0; i < notOfferedChannelChildrenSorted.length; i++) {
+      const channel = notOfferedChannelChildrenSorted[i];
+
+      channelPositions.push({
+        channel: channel.id,
+        position: i,
+      });
+    }
+  }
+
+  await saveCourseMapping();
+  await message.guild.setChannelPositions(channelPositions);
+}
+
+async function rename(message, nameSyntax, channelCategories) {
+  const courseIdToName = new Map();
+  const attachment = await parseAttachment(message);
+
+  if (!attachment) {
+    return;
+  }
+
+  const { coursesBeingOffered, allCourses } = attachment;
+
+  for (const courseNumber in allCourses) {
+    const courseName =
+      coursesBeingOffered[courseNumber] || allCourses[courseNumber];
+
+    // We need to pass the allCourses name since categorizeCourse uses the generic course name
+    // to identify special topics courses
+    const category = categorizeCourse(courseNumber, allCourses[courseNumber]);
+    const courseId = getCourseIdFromCourseNumber(
+      courseNumber,
+      courseName,
+      category
+    );
+
+    // Add the course to the mapping
+    courseIdToName.set(courseId, courseName);
+  }
+
+  for (const category in channelCategories) {
+    const { offeredChannel, notOfferedChannel } = channelCategories[category];
+    const allChannels = [
+      ...offeredChannel.children.values(),
+      ...notOfferedChannel.children.values(),
+    ];
+
+    for (const channel of allChannels) {
+      const courseId = getCourseIdFromChannel(channel);
+      const courseName = courseIdToName.get(courseId);
+      await channel.setName(
+        getChannelNameFromSyntax(courseId, courseName, nameSyntax, null)
+      );
+    }
+  }
+}
+
+async function reset(channelCategories) {
+  for (const category in channelCategories) {
+    const { offeredChannel, notOfferedChannel } = channelCategories[category];
+    for (const channel of offeredChannel.children.values()) {
+      if (channel.type !== "text") continue;
+
+      await channel.delete();
+    }
+
+    for (const channel of notOfferedChannel.children.values()) {
+      if (channel.type !== "text") continue;
+
+      await channel.delete();
+    }
+  }
+}
+
+async function changeSyntax(message, args) {
+  if (args.length !== 2) {
+    return message.reply(
+      "Invalid number of arguments. Expected only one argument: `changeSyntax <syntax>`\n" +
+        "Example: `changeSyntax cpsc-{{number}}-{{name}}`\n" +
+        "This will change the channel name to something like `cpsc-121-introduction-to-computer-science`. Run `!updateCourseChannels rename` to apply the changes."
+    );
+  }
+
+  config.nameSyntax = args[1];
+  return await saveConfig();
+}
+
 module.exports = {
   name: "updateCourseChannels",
   usage: ["<commandName> [rearrange|rename|reset] [nameSyntax]"],
@@ -177,39 +446,9 @@ module.exports = {
   permLevel: "Moderator",
   noArgs: false,
   async execute(message, args) {
-    // Get the file attached to the message
-    const attachmentURL = message.attachments.first()?.attachment;
-
-    if (!attachmentURL) {
-      // The user didn't attach a file, so tell them what file the command expects
-      return message.reply(
-        "Attachment not found! To use this command:\n" +
-          "1. Log in to Zagweb\n" +
-          "2. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n" +
-          "3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js. After the script runs successfully, it will download a file called `result.json`\n" +
-          "4. Run this command again, but attach the downloaded `result.json` file"
-      );
-    }
-
-    /** @type {AttachmentJSON} */
-    let attachment;
-
-    try {
-      attachment = await (await fetch(attachmentURL)).json();
-    } catch (e) {
-      return message.reply(`Error fetching attachment: ${e.message})`);
-    }
-
-    // Validate the attachment
-    try {
-      validateAttachment(attachment);
-    } catch (e) {
-      return message.reply(e.message);
-    }
-
     // Let the user know that the command is running
-    const waitingReaction = await message.react("⌛");
-    const { coursesBeingOffered, allCourses, term } = attachment;
+    const action = args[0];
+    const nameSyntax = config.nameSyntax;
     const channelCategories = Object.fromEntries(
       ["mainline", "elective", "special", "graduate"].map((category) => [
         category,
@@ -225,199 +464,21 @@ module.exports = {
       ])
     );
 
-    // Add courses to their respective categories
-    for (const courseNumber in coursesBeingOffered) {
-      const category = categorizeCourse(
-        courseNumber,
-        coursesBeingOffered[courseNumber]
-      );
-      channelCategories[category].courses.push(courseNumber);
+    switch(action) {
+      case "rename":
+        rename(message, nameSyntax, channelCategories);
+        break;
+      case "changeSyntax":
+        changeSyntax(message, args);
+        break;
+      case "reset":
+        reset(channelCategories);
+        break;
+      case "rearrange":
+        rearrange(message, nameSyntax, channelCategories);
+        break;
+      default:
+        message.reply("Invalid action. Expected one of `rename`, `rearrange`, or `changeSyntax`");
     }
-
-    // Set of course IDs that are being offered
-    const offeredCourseIds = new Set();
-    const courseIdToName = new Map();
-
-    for (const category in channelCategories) {
-      const { courses } = channelCategories[category];
-
-      for (const courseNumber of courses) {
-        offeredCourseIds.add(
-          getCourseIdFromCourseNumber(
-            courseNumber,
-            coursesBeingOffered[courseNumber],
-            category
-          )
-        );
-      }
-    }
-
-    for (const courseNumber in allCourses) {
-      const courseName =
-        coursesBeingOffered[courseNumber] || allCourses[courseNumber];
-
-      // We need to pass the allCourses name since categorizeCourse uses the generic course name
-      // to identify special topics courses
-      const category = categorizeCourse(courseNumber, allCourses[courseNumber]);
-      const courseId = getCourseIdFromCourseNumber(
-        courseNumber,
-        courseName,
-        category
-      );
-
-      // Add the course to the mapping
-      courseIdToName.set(courseId, courseName);
-    }
-
-    /** @type {ChannelPositions} */
-    // Stores the channel positions in the category
-    const channelPositions = [];
-    const action = args[0] || "rearrange";
-    const renameSyntax = args[1];
-
-    for (const category in channelCategories) {
-      // Stores whether a channel already exists for a course number
-      const existingChannelIds = new Set();
-      const { offeredChannel, notOfferedChannel, courses } =
-        channelCategories[category];
-
-      if (action === "rename") {
-        const allChannels = [
-          ...offeredChannel.children.values(),
-          ...notOfferedChannel.children.values(),
-        ];
-
-        for (const channel of allChannels) {
-          const courseId = getCourseIdFromChannel(channel);
-          const courseName = courseIdToName.get(courseId);
-          await channel.setName(
-            getChannelNameFromSyntax(courseId, courseName, renameSyntax)
-          );
-        }
-
-        continue;
-      }
-      // else if (action === "reset") {
-      //   for (const channel of [
-      //     ...offeredChannel.children.values(),
-      //     ...notOfferedChannel.children.values(),
-      //   ]) {
-      //     await channel.delete();
-      //   }
-      //   continue;
-      // }
-
-      // Rearrage and add channels
-      // We can have three cases:
-
-      // Case 1: The course channel is in the offered channel, but the course is not being offered
-      for (const channel of offeredChannel.children.values()) {
-        // Get the course ID from the channel name
-        const courseId = getCourseIdFromChannel(channel, category);
-
-        if (!courseId) continue;
-
-        if (!offeredCourseIds.has(courseId)) {
-          // If it's not being offered, move it to the not offered channel
-          await channel.setParent(notOfferedChannel.id);
-        }
-
-        // Update the set of existing channel names
-        existingChannelIds.add(courseId);
-      }
-
-      // Case 2: The course channel is in the not offered channel, but the course is being offered
-      for (const channel of notOfferedChannel.children.values()) {
-        // Get the course ID from the channel name
-        const courseId = getCourseIdFromChannel(channel, category);
-
-        if (!courseId) continue;
-
-        if (offeredCourseIds.has(courseId)) {
-          // If it is being offered, move it to the offered channel
-          await channel.setParent(offeredChannel.id);
-        }
-
-        // Update the set of existing channel names
-        existingChannelIds.add(courseId);
-      }
-
-      // Case 3: The course isn't in either channels, but is being offered, so we need to create it
-      for (const courseNumber of courses) {
-        const courseId = getCourseIdFromCourseNumber(
-          courseNumber,
-          coursesBeingOffered[courseNumber],
-          category
-        );
-
-        // Check that course is being offered
-        if (!offeredCourseIds.has(courseId)) {
-          continue;
-        }
-
-        // Check if the channel already exists
-        if (existingChannelIds.has(courseId)) {
-          continue;
-        }
-
-        // Create the channel
-        const courseName = coursesBeingOffered[courseNumber];
-        const channelName = getChannelNameFromSyntax(
-          courseId,
-          courseName,
-          renameSyntax,
-          category
-        );
-        const channel = await message.guild.channels.create(channelName, {
-          parent: offeredChannel.id,
-        });
-
-        // Add the course to the course mapping
-        courseMapping[courseId] = channel.id;
-
-        await channel.setTopic(courseName);
-      }
-
-      // Sort the channels lexicographically. This also works for non-special courses since
-      // all the course numbers are 3 digits.
-      const offeredChannelChildrenSorted = [
-        ...offeredChannel.children.values(),
-      ].sort((a, b) => {
-        return a.name >= b.name ? 1 : -1;
-      });
-
-      const notOfferedChannelChildrenSorted = [
-        ...notOfferedChannel.children.values(),
-      ].sort((a, b) => {
-        return a.name >= b.name ? 1 : -1;
-      });
-
-      for (let i = 0; i < offeredChannelChildrenSorted.length; i++) {
-        const channel = offeredChannelChildrenSorted[i];
-
-        await channel.send(`--------------------${term}--------------------`);
-
-        channelPositions.push({
-          channel: channel.id,
-          position: i,
-        });
-      }
-
-      for (let i = 0; i < notOfferedChannelChildrenSorted.length; i++) {
-        const channel = notOfferedChannelChildrenSorted[i];
-
-        channelPositions.push({
-          channel: channel.id,
-          position: i,
-        });
-      }
-    }
-
-    await saveCourseMapping();
-    await message.guild.setChannelPositions(channelPositions);
-
-    // Remove the waiting reaction and add a success reaction
-    await waitingReaction.remove();
-    await message.react("✅");
   },
 };
