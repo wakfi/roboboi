@@ -69,7 +69,7 @@ function getChannelId(courseNumber, courseName, category) {
  * @returns {string} The course ID
  */
 function getCourseId(channelName) {
-  return channelName.replace("cpsc-", "").toLowerCase();
+  return channelName.replace("cpsc-", "");
 }
 
 /**
@@ -209,10 +209,22 @@ module.exports = {
       const { offeredChannel, notOfferedChannel, courses } =
         categories[category];
 
+      const offeredChannelChildrenSorted = [
+        ...offeredChannel.children.values(),
+      ].sort((a, b) => {
+        return a.name >= b.name ? 1 : -1;
+      });
+
+      const notOfferedChannelChildrenSorted = [
+        ...notOfferedChannel.children.values(),
+      ].sort((a, b) => {
+        return a.name >= b.name ? 1 : -1;
+      });
+
       // We can have three cases:
- 
+
       // Case 1: The course channel is in the offered channel, but the course is not being offered
-      for (const [_, channel] of offeredChannel.children) {
+      for (const channel of offeredChannelChildrenSorted) {
         if (channel.type !== "text") continue;
 
         // Get the course ID from the channel name
@@ -231,7 +243,7 @@ module.exports = {
       }
 
       // Case 2: The course channel is in the not offered channel, but the course is being offered
-      for (const [_, channel] of notOfferedChannel.children) {
+      for (const channel of notOfferedChannelChildrenSorted) {
         if (channel.type !== "text") continue;
 
         // Get the course ID from the channel name
@@ -275,23 +287,10 @@ module.exports = {
         });
       }
 
-
       // Sort the channels lexicographically. This also works for non-special courses since
       // all the course numbers are 3 digits.
-      const offeredChannels = [...offeredChannel.children.values()].sort(
-        (a, b) => {
-          return (a.name >= b.name) ? 1 : -1;
-        }
-      );
-
-      const notOfferedChannels= [...notOfferedChannel.children.values()].sort(
-        (a, b) => {
-          return (a.name >= b.name) ? 1 : -1;
-        }
-      );
-
-      for (let i = 0; i < offeredChannels.length; i++) {
-        const channel = offeredChannels[i];
+      for (let i = 0; i < offeredChannelChildrenSorted.length; i++) {
+        const channel = offeredChannelChildrenSorted[i];
 
         channelPositions.push({
           channel: channel.id,
@@ -299,8 +298,8 @@ module.exports = {
         });
       }
 
-      for (let i = 0; i < notOfferedChannels.length; i++) {
-        const channel = notOfferedChannels[i];
+      for (let i = 0; i < notOfferedChannelChildrenSorted.length; i++) {
+        const channel = notOfferedChannelChildrenSorted[i];
 
         channelPositions.push({
           channel: channel.id,
