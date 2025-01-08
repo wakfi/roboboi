@@ -49,7 +49,7 @@ function validateAttachment(attachment) {
  *
  * @returns {string} The channel ID for the course
  */
-function getChannelId(courseNumber, courseName, category) {
+function getCourseIdFromCourseNumber(courseNumber, courseName, category) {
   if (category === "special") {
     courseName = courseName.toLowerCase();
     courseName = courseName.replaceAll("&amp;", "&");
@@ -69,7 +69,7 @@ function getChannelId(courseNumber, courseName, category) {
  *
  * @returns {string} The course ID
  */
-function getCourseId(channelName) {
+function getCourseIdFromChannelName(channelName) {
   return channelName.replace("cpsc-", "");
 }
 
@@ -116,9 +116,7 @@ module.exports = {
     }
 
     const { coursesBeingOffered, allCourses } = attachment;
-
     const mainlineCourses = config.mainlineCourses;
-
     const channelCategories = Object.fromEntries(
       ["mainline", "elective", "special", "graduate"].map((category) => [
         category,
@@ -150,19 +148,20 @@ module.exports = {
       }
     }
 
-    const offeredSpecialCourseIds = channelCategories.special.courses.map(
-      (courseNumber) =>
-        getChannelId(courseNumber, coursesBeingOffered[courseNumber], "special")
-    );
+    const offeredCourseIds = new Set();
 
-    function isBeingOffered(courseNumber, category) {
-      if (category === "special") {
-        return offeredSpecialCourseIds.includes(courseNumber);
+    for (const category in channelCategories) {
+      const { courses } = channelCategories[category];
+
+      for (const courseNumber of courses) {
+        offeredCourseIds.add(
+          getCourseIdFromCourseNumber(
+            courseNumber,
+            coursesBeingOffered[courseNumber],
+            category
+          )
+        );
       }
-
-      // We need to check the upper case version of the course "number" because discord
-      // channel names are lowercase and the course numbers are uppercase
-      return courseNumber.toUpperCase() in coursesBeingOffered;
     }
 
     /** @type {ChannelPositions} */
@@ -191,15 +190,13 @@ module.exports = {
 
       // Case 1: The course channel is in the offered channel, but the course is not being offered
       for (const channel of offeredChannelChildrenSorted) {
-        if (channel.type !== "text") continue;
-
         // Get the course ID from the channel name
         const channelName = channel.name;
-        const courseId = getCourseId(channelName, category);
+        const courseId = getCourseIdFromChannelName(channelName, category);
 
         if (!courseId) continue;
 
-        if (!isBeingOffered(courseId, category)) {
+        if (!offeredCourseIds.has(courseId)) {
           // If it's not being offered, move it to the not offered channel
           await channel.setParent(notOfferedChannel.id);
         }
@@ -210,15 +207,13 @@ module.exports = {
 
       // Case 2: The course channel is in the not offered channel, but the course is being offered
       for (const channel of notOfferedChannelChildrenSorted) {
-        if (channel.type !== "text") continue;
-
         // Get the course ID from the channel name
         const channelName = channel.name;
-        const courseId = getCourseId(channelName, category);
+        const courseId = getCourseIdFromChannelName(channelName, category);
 
         if (!courseId) continue;
 
-        if (isBeingOffered(courseId, category)) {
+        if (offeredCourseIds.has(courseId)) {
           // If it is being offered, move it to the offered channel
           await channel.setParent(offeredChannel.id);
         }
@@ -229,24 +224,24 @@ module.exports = {
 
       // Case 3: The course isn't in either channels, but is being offered, so we need to create it
       for (const courseNumber of courses) {
-        const channelId = getChannelId(
+        const courseId = getCourseIdFromCourseNumber(
           courseNumber,
           coursesBeingOffered[courseNumber],
           category
         );
 
         // Check that course is being offered
-        if (!isBeingOffered(channelId, category)) {
+        if (!offeredCourseIds.has(courseId)) {
           continue;
         }
 
         // Check if the channel already exists
-        if (existingChannelIds.has(channelId)) {
+        if (existingChannelIds.has(courseId)) {
           continue;
         }
 
         // Create the channel
-        const channelName = getChannelName(channelId, category);
+        const channelName = getChannelName(courseId, category);
 
         await message.guild.channels.create(channelName, {
           parent: offeredChannel.id,
