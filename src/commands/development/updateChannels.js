@@ -117,23 +117,7 @@ module.exports = {
 
     const { coursesBeingOffered, allCourses } = attachment;
 
-    const mainlineCourses = [
-      "121",
-      "122",
-      "223",
-      "224",
-      "260",
-      "321",
-      "326",
-      "346",
-      "348",
-      "351",
-      "450",
-      "491",
-      "491L",
-      "492L",
-      "499",
-    ];
+    const mainlineCourses = config.mainlineCourses;
 
     const channelCategories = Object.fromEntries(
       ["mainline", "elective", "special", "graduate"].map((category) => [
