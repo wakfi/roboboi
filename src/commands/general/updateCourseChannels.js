@@ -102,7 +102,7 @@ module.exports = {
 
     if (!attachmentURL) {
       // The user didn't attach a file, so tell them what file the command expects
-      return message.channel.send(
+      return message.reply(
         `Attachment not found! To use this command:\n1. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n2. Log in\n3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js`
       );
     }
@@ -114,7 +114,7 @@ module.exports = {
     try {
       validateAttachment(attachment);
     } catch (e) {
-      return message.channel.send(e.message);
+      return message.reply(e.message);
     }
 
     // Let the user know that the command is running
