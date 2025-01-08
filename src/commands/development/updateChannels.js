@@ -174,22 +174,10 @@ module.exports = {
       const { offeredChannel, notOfferedChannel, courses } =
         channelCategories[category];
 
-      const offeredChannelChildrenSorted = [
-        ...offeredChannel.children.values(),
-      ].sort((a, b) => {
-        return a.name >= b.name ? 1 : -1;
-      });
-
-      const notOfferedChannelChildrenSorted = [
-        ...notOfferedChannel.children.values(),
-      ].sort((a, b) => {
-        return a.name >= b.name ? 1 : -1;
-      });
-
       // We can have three cases:
 
       // Case 1: The course channel is in the offered channel, but the course is not being offered
-      for (const channel of offeredChannelChildrenSorted) {
+      for (const channel of offeredChannel.children.values()) {
         // Get the course ID from the channel name
         const channelName = channel.name;
         const courseId = getCourseIdFromChannelName(channelName, category);
@@ -206,7 +194,7 @@ module.exports = {
       }
 
       // Case 2: The course channel is in the not offered channel, but the course is being offered
-      for (const channel of notOfferedChannelChildrenSorted) {
+      for (const channel of notOfferedChannel.children.values()) {
         // Get the course ID from the channel name
         const channelName = channel.name;
         const courseId = getCourseIdFromChannelName(channelName, category);
@@ -250,10 +238,23 @@ module.exports = {
 
       // Sort the channels lexicographically. This also works for non-special courses since
       // all the course numbers are 3 digits.
+      const offeredChannelChildrenSorted = [
+        ...offeredChannel.children.values(),
+      ].sort((a, b) => {
+        return a.name >= b.name ? 1 : -1;
+      });
+
+      const notOfferedChannelChildrenSorted = [
+        ...notOfferedChannel.children.values(),
+      ].sort((a, b) => {
+        return a.name >= b.name ? 1 : -1;
+      });
+
       for (let i = 0; i < offeredChannelChildrenSorted.length; i++) {
         const channel = offeredChannelChildrenSorted[i];
 
         channelPositions.push({
+          channelName: channel.name,
           channel: channel.id,
           position: i,
         });
@@ -263,12 +264,15 @@ module.exports = {
         const channel = notOfferedChannelChildrenSorted[i];
 
         channelPositions.push({
+          channelName: channel.name,
           channel: channel.id,
           position: i,
         });
       }
     }
 
+
+    console.log(channelPositions);
     await message.guild.setChannelPositions(channelPositions);
   },
 };
