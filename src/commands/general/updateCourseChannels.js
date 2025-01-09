@@ -102,10 +102,6 @@ function getCourseIdFromChannel(channel) {
   if (channel.id in courseMapping) {
     return courseMapping[channel.id].id;
   }
-
-  throw new Error(
-    `Channel ${channel.name} does not have a corresponding course ID`
-  );
 }
 
 /**
@@ -246,7 +242,12 @@ async function rearrange(message, nameSyntax, channelCategories) {
       // Get the course ID from the channel name
       const courseId = getCourseIdFromChannel(channel);
 
-      if (!courseId) continue;
+      if (!courseId) {
+        // If we don't have any information about the course, assume it's not being
+        // offered and move it to the not offered channel
+        await channel.setParent(notOfferedChannel.id);
+        continue;
+      }
 
       if (!offeredCourseIds.has(courseId)) {
         // If it's not being offered, move it to the not offered channel
