@@ -100,7 +100,7 @@ function getCourseIdFromCourseNumber(courseNumber, courseName, category) {
  */
 function getCourseIdFromChannel(channel) {
   if (channel.id in courseMapping) {
-    return courseMapping[channel.id];
+    return courseMapping[channel.id].id;
   }
 
   throw new Error(
@@ -150,17 +150,18 @@ function categorizeCourse(courseNumber, courseName) {
 }
 
 /**
- * @param {string} courseNumber The course number
+ * @param {string} courseId The course Id
  * @param {string} courseName The course name
  * @param {string} syntax The syntax to use for the channel name. For example, `cpsc-{{number}}-{{name}}`
  * would be transformedto `cpsc-121-introduction-to-computer-science`.
  * @param {CourseCategory} category The category of the course
+ * @param {string} courseNumber The course number
  *
  * @returns {string} The channel name
  */
-function getChannelNameFromSyntax(courseNumber, courseName, syntax, category) {
+function getChannelNameFromSyntax(courseId, courseName, syntax, category, courseNumber = undefined) {
   if (!syntax) {
-    return getChannelName(courseNumber, courseName, category);
+    return getChannelName(courseId, courseName, category);
   }
 
   const normalizedCourseName = normalizeCourseName(courseName);
@@ -296,14 +297,19 @@ async function rearrange(message, nameSyntax, channelCategories) {
         courseId,
         courseName,
         nameSyntax,
-        category
+        category,
+        courseNumber
       );
       const channel = await message.guild.channels.create(channelName, {
         parent: offeredChannel.id,
       });
 
       // Add the course to the course mapping
-      courseMapping[channel.id] = courseId;
+      courseMapping[channel.id] = {
+        id: courseId,
+        number: courseNumber,
+        name: courseName,
+      };
 
       await channel.setTopic(courseName);
     }
@@ -348,27 +354,6 @@ async function rearrange(message, nameSyntax, channelCategories) {
 }
 
 async function rename(message, nameSyntax, channelCategories) {
-  const courseIdToName = new Map();
-  const attachment = await parseAttachment(message);
-  const { coursesBeingOffered, allCourses } = attachment;
-
-  for (const courseNumber in allCourses) {
-    const courseName =
-      coursesBeingOffered[courseNumber] || allCourses[courseNumber];
-
-    // We need to pass the allCourses name since categorizeCourse uses the generic course name
-    // to identify special topics courses
-    const category = categorizeCourse(courseNumber, allCourses[courseNumber]);
-    const courseId = getCourseIdFromCourseNumber(
-      courseNumber,
-      courseName,
-      category
-    );
-
-    // Add the course to the mapping
-    courseIdToName.set(courseId, courseName);
-  }
-
   for (const category in channelCategories) {
     const { offeredChannel, notOfferedChannel } = channelCategories[category];
     const allChannels = [
@@ -377,18 +362,14 @@ async function rename(message, nameSyntax, channelCategories) {
     ];
 
     for (const channel of allChannels) {
-      const courseId = getCourseIdFromChannel(channel);
-      const courseName = courseIdToName.get(courseId);
+      const channelId = channel.id;
 
-      if (!courseName) {
-        console.error(
-          `Course ID ${courseId} does not have a corresponding course name`
-        );
-        continue;
-      }
+      if (!(channelId in courseMapping)) continue;
+      
+      const {id, number, name} = courseMapping[channelId];
 
       await channel.setName(
-        getChannelNameFromSyntax(courseId, courseName, nameSyntax, null)
+        getChannelNameFromSyntax(id, name, nameSyntax, null, number)
       );
     }
   }
@@ -434,11 +415,12 @@ module.exports = {
   name: "updateCourseChannels",
   usage: ["<rearrange|rename|changeSyntax> [nameSyntax]"],
   aliases: ["ucc"],
-  description: "Updates the course channels' names and position.\n" +
-               "- The syntax of the channel name can be changed using the `changeSyntax` subcommand.\n" +
-               "- The new syntax can be applied using the `rename` subcommand.\n" +
-               "- The syntax can be any string with `{{number}}` and `{{name}}` as placeholders for the course number and name, respectively. For example, `cpsc-{{number}}-{{name}}` would be transformed to `cpsc-121-introduction-to-computer-science`.\n" +
-               "- To rearrange the channels based on what course is being offered currently, use the `rearrange` subcommand.",
+  description:
+    "Updates the course channels' names and position.\n" +
+    "- The syntax of the channel name can be changed using the `changeSyntax` subcommand.\n" +
+    "- The new syntax can be applied using the `rename` subcommand.\n" +
+    "- The syntax can be any string with `{{number}}` and `{{name}}` as placeholders for the course number and name, respectively. For example, `cpsc-{{number}}-{{name}}` would be transformed to `cpsc-121-introduction-to-computer-science`.\n" +
+    "- To rearrange the channels based on what course is being offered currently, use the `rearrange` subcommand.",
   category: "development",
   permLevel: "Moderator",
   noArgs: false,
