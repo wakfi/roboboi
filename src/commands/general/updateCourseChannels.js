@@ -99,7 +99,7 @@ function getCourseIdFromCourseNumber(courseNumber, courseName, category) {
  * @returns {string} The course ID
  */
 function getCourseIdFromChannel(channel) {
-  if(channel.id in courseMapping) {
+  if (channel.id in courseMapping) {
     return courseMapping[channel.id];
   }
 
@@ -176,14 +176,13 @@ async function parseAttachment(message) {
 
   if (!attachmentURL) {
     // The user didn't attach a file, so tell them what file the command expects
-    message.reply(
+    throw new Error(
       "Attachment not found! To use this command:\n" +
         "1. Log in to Zagweb\n" +
         "2. Go to https://xe.gonzaga.edu/StudentRegistrationSsb/ssb/term/termSelection?mode=search\n" +
         "3. Run the following JavaScript in the console: https://raw.githubusercontent.com/soitchu/zagweb-registration-api/refs/heads/main/dist/index.js. After the script runs successfully, it will download a file called `result.json`\n" +
         "4. Run this command again, but attach the downloaded `result.json` file"
     );
-    return undefined;
   }
 
   /** @type {AttachmentJSON} */
@@ -192,35 +191,22 @@ async function parseAttachment(message) {
   try {
     attachment = await (await fetch(attachmentURL)).json();
   } catch (e) {
-    message.reply(`Error fetching attachment: ${e.message})`);
-    return undefined;
+    throw new Error(`Error fetching attachment: ${e.message})`);
   }
 
   // Validate the attachment
-  try {
-    validateAttachment(attachment);
-  } catch (e) {
-    message.reply(e.message);
-    return undefined;
-  }
+  validateAttachment(attachment);
 
   return attachment;
 }
 
 async function rearrange(message, nameSyntax, channelCategories) {
   const attachment = await parseAttachment(message);
-  if (!attachment) {
-    return;
-  }
-
   const { coursesBeingOffered, allCourses, term } = attachment;
 
   // Add courses to their respective categories
   for (const courseNumber in coursesBeingOffered) {
-    const category = categorizeCourse(
-      courseNumber,
-      allCourses[courseNumber]
-    );
+    const category = categorizeCourse(courseNumber, allCourses[courseNumber]);
     channelCategories[category].courses.push(courseNumber);
   }
 
@@ -364,11 +350,6 @@ async function rearrange(message, nameSyntax, channelCategories) {
 async function rename(message, nameSyntax, channelCategories) {
   const courseIdToName = new Map();
   const attachment = await parseAttachment(message);
-
-  if (!attachment) {
-    return;
-  }
-
   const { coursesBeingOffered, allCourses } = attachment;
 
   for (const courseNumber in allCourses) {
@@ -403,7 +384,7 @@ async function rename(message, nameSyntax, channelCategories) {
         console.error(
           `Course ID ${courseId} does not have a corresponding course name`
         );
-        continue
+        continue;
       }
 
       await channel.setName(
@@ -429,16 +410,16 @@ async function reset(channelCategories) {
     }
   }
 
-  for(const key in courseMapping) {
+  for (const key in courseMapping) {
     delete courseMapping[key];
   }
 
   await saveCourseMapping();
 }
 
-async function changeSyntax(message, args) {
+async function changeSyntax(args) {
   if (args.length !== 2) {
-    return message.reply(
+    throw new Error(
       "Invalid number of arguments. Expected only one argument: `changeSyntax <syntax>`\n" +
         "Example: `changeSyntax cpsc-{{number}}-{{name}}`\n" +
         "This will change the channel name to something like `cpsc-121-computer-science-i`. Run `!updateCourseChannels rename` to apply the changes."
@@ -451,9 +432,13 @@ async function changeSyntax(message, args) {
 
 module.exports = {
   name: "updateCourseChannels",
-  usage: ["<commandName> [rearrange|rename|changeSyntax] [nameSyntax]"],
+  usage: ["<rearrange|rename|changeSyntax> [nameSyntax]"],
   aliases: ["ucc"],
-  description: "Updates the channels for the courses",
+  description: "Updates the course channels' names and position.\n" +
+               "- The syntax of the channel name can be changed using the `changeSyntax` subcommand.\n" +
+               "- The new syntax can be applied using the `rename` subcommand.\n" +
+               "- The syntax can be any string with `{{number}}` and `{{name}}` as placeholders for the course number and name, respectively. For example, `cpsc-{{number}}-{{name}}` would be transformed to `cpsc-121-introduction-to-computer-science`.\n" +
+               "- To rearrange the channels based on what course is being offered currently, use the `rearrange` subcommand.",
   category: "development",
   permLevel: "Moderator",
   noArgs: false,
@@ -476,21 +461,33 @@ module.exports = {
       ])
     );
 
-    switch(action) {
-      case "rename":
-        await rename(message, nameSyntax, channelCategories);
-        break;
-      case "changeSyntax":
-        await changeSyntax(message, args);
-        break;
-      case "reset":
-        await reset(channelCategories);
-        break;
-      case "rearrange":
-        await rearrange(message, nameSyntax, channelCategories);
-        break;
-      default:
-        message.reply("Invalid action. Expected one of `rename`, `rearrange`, or `changeSyntax`");
+    let waitingReaction = await message.react("⌛");
+    try {
+      switch (action) {
+        case "rename":
+          await rename(message, nameSyntax, channelCategories);
+          break;
+        case "changeSyntax":
+          await changeSyntax(args);
+          break;
+        case "reset":
+          await reset(channelCategories);
+          break;
+        case "rearrange":
+          await rearrange(message, nameSyntax, channelCategories);
+          break;
+        default:
+          throw new Error(
+            "Invalid action. Expected one of `rename`, `rearrange`, or `changeSyntax`"
+          );
+      }
+
+      await waitingReaction.remove();
+      await message.react("✅");
+    } catch (e) {
+      await waitingReaction.remove();
+      await message.react("❌");
+      await message.reply(e.message);
     }
   },
 };
