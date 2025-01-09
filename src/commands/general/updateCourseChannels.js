@@ -319,13 +319,15 @@ async function rearrange(message, nameSyntax, channelCategories) {
     const offeredChannelChildrenSorted = [
       ...offeredChannel.children.values(),
     ].sort((a, b) => {
-      return a.name >= b.name ? 1 : -1;
+      if(a.name === b.name) return 0;
+      return a.name > b.name ? 1 : -1;
     });
 
     const notOfferedChannelChildrenSorted = [
       ...notOfferedChannel.children.values(),
     ].sort((a, b) => {
-      return a.name >= b.name ? 1 : -1;
+      if(a.name === b.name) return 0;
+      return a.name > b.name ? 1 : -1;
     });
 
     for (let i = 0; i < offeredChannelChildrenSorted.length; i++) {
