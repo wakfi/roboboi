@@ -333,7 +333,7 @@ async function rearrange(message, nameSyntax, channelCategories) {
     for (let i = 0; i < offeredChannelChildrenSorted.length; i++) {
       const channel = offeredChannelChildrenSorted[i];
 
-      await channel.send(`--------------------${term}--------------------`);
+      await channel.send(`***Start of ${term}***`);
 
       channelPositions.push({
         channel: channel.id,
