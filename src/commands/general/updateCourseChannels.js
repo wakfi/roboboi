@@ -1,14 +1,14 @@
+const fs = require("fs/promises");
 const configPath = `${process.cwd()}/util/components/course.json`;
 const config = require(configPath);
-const fs = require("fs/promises");
+const courseMappingPath = `${process.cwd()}/util/components/courseMapping.json`;
+const courseMapping = require(courseMappingPath);
+
+const mainlineCourses = config.mainlineCourses;
 
 /** @typedef {{"allCourses": Object.<number, string>, "coursesBeingOffered":  Object.<number, string>, "term": string}} AttachmentJSON */
 /** @typedef {"mainline" |  "elective" | "special" | "graduate"} CourseCategory */
 /** @typedef {{channel: string, position: number}[]} ChannelPositions */
-
-const courseMappingPath = `${process.cwd()}/util/components/courseMapping.json`;
-const courseMapping = require(courseMappingPath);
-const mainlineCourses = config.mainlineCourses;
 
 /**
  * Saves the course mapping to the file
