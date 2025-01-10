@@ -88,6 +88,10 @@ function getCourseIdFromCourseNumber(courseNumber, courseName, category) {
     return normalizeCourseName(courseName);
   }
 
+  if(courseNumber === "491L" || courseNumber === "492L") {
+    return "senior-design-lab";
+  }
+
   return courseNumber.toLowerCase();
 }
 
