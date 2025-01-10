@@ -9,6 +9,7 @@ const mainlineCourses = config.mainlineCourses;
 /** @typedef {{"allCourses": Object.<number, string>, "coursesBeingOffered":  Object.<number, string>, "term": string}} AttachmentJSON */
 /** @typedef {"mainline" |  "elective" | "special" | "graduate"} CourseCategory */
 /** @typedef {{channel: string, position: number}[]} ChannelPositions */
+/** @typedef {Object.<string, {offeredChannel: any, notOfferedChannel: any, courses: string[]}} ChannelCategories*/
 
 /**
  * Saves the course mapping to the file
@@ -88,7 +89,7 @@ function getCourseIdFromCourseNumber(courseNumber, courseName, category) {
     return normalizeCourseName(courseName);
   }
 
-  if(courseNumber === "491L" || courseNumber === "492L") {
+  if (courseNumber === "491L" || courseNumber === "492L") {
     return "senior-design-lab";
   }
 
@@ -159,7 +160,13 @@ function categorizeCourse(courseNumber, courseName) {
  *
  * @returns {string} The channel name
  */
-function getChannelNameFromSyntax(courseId, courseName, syntax, category, courseNumber = undefined) {
+function getChannelNameFromSyntax(
+  courseId,
+  courseName,
+  syntax,
+  category,
+  courseNumber = undefined
+) {
   if (!syntax) {
     return getChannelName(courseId, courseName, category);
   }
@@ -171,6 +178,14 @@ function getChannelNameFromSyntax(courseId, courseName, syntax, category, course
     .replaceAll("{{name}}", normalizedCourseName);
 }
 
+/**
+ * Gets the first attachment from the message
+ *
+ * @param message The message object
+ *
+ * @throws {Error} If the attachment is not found, or if there was an error fetching/parsing the attachment
+ * @returns Parsed JSON object
+ */
 async function parseAttachment(message) {
   // Get the file attached to the message
   const attachmentURL = message.attachments.first()?.attachment;
@@ -201,6 +216,13 @@ async function parseAttachment(message) {
   return attachment;
 }
 
+/**
+ * Rearranges the course channels based on the courses being offered
+ *
+ * @param {*} message The message object
+ * @param {string} nameSyntax The syntax to use for the channel name
+ * @param {ChannelCategories} channelCategories The channels to rearrange
+ */
 async function rearrange(message, nameSyntax, channelCategories) {
   const attachment = await parseAttachment(message);
   const { coursesBeingOffered, allCourses, term } = attachment;
@@ -324,14 +346,14 @@ async function rearrange(message, nameSyntax, channelCategories) {
     const offeredChannelChildrenSorted = [
       ...offeredChannel.children.values(),
     ].sort((a, b) => {
-      if(a.name === b.name) return 0;
+      if (a.name === b.name) return 0;
       return a.name > b.name ? 1 : -1;
     });
 
     const notOfferedChannelChildrenSorted = [
       ...notOfferedChannel.children.values(),
     ].sort((a, b) => {
-      if(a.name === b.name) return 0;
+      if (a.name === b.name) return 0;
       return a.name > b.name ? 1 : -1;
     });
 
@@ -360,7 +382,13 @@ async function rearrange(message, nameSyntax, channelCategories) {
   await message.guild.setChannelPositions(channelPositions);
 }
 
-async function rename(message, nameSyntax, channelCategories) {
+/**
+ * Renames the course channels based on the syntax
+ * 
+ * @param {string} nameSyntax
+ * @param {ChannelCategories} channelCategories
+ */
+async function rename(nameSyntax, channelCategories) {
   for (const category in channelCategories) {
     const { offeredChannel, notOfferedChannel } = channelCategories[category];
     const allChannels = [
@@ -372,8 +400,8 @@ async function rename(message, nameSyntax, channelCategories) {
       const channelId = channel.id;
 
       if (!(channelId in courseMapping)) continue;
-      
-      const {id, number, name} = courseMapping[channelId];
+
+      const { id, number, name } = courseMapping[channelId];
 
       await channel.setName(
         getChannelNameFromSyntax(id, name, nameSyntax, null, number)
@@ -382,6 +410,11 @@ async function rename(message, nameSyntax, channelCategories) {
   }
 }
 
+/**
+ * Deletes all the course channels. Should only be used for testing purposes, so it's commented out.
+ * 
+ * @param {ChannelCategories} channelCategories 
+ */
 async function reset(channelCategories) {
   for (const category in channelCategories) {
     const { offeredChannel, notOfferedChannel } = channelCategories[category];
@@ -405,6 +438,12 @@ async function reset(channelCategories) {
   await saveCourseMapping();
 }
 
+/**
+ * Changes the syntax of the course channel names
+ * 
+ * @param {string[]} args The arguments passed to the command 
+ * @returns 
+ */
 async function changeSyntax(args) {
   if (args.length !== 2) {
     throw new Error(
@@ -435,6 +474,7 @@ module.exports = {
     // Let the user know that the command is running
     const action = args[0];
     const nameSyntax = config.nameSyntax;
+    /** @type {ChannelCategories} */
     const channelCategories = Object.fromEntries(
       ["mainline", "elective", "special", "graduate"].map((category) => [
         category,
@@ -454,7 +494,7 @@ module.exports = {
     try {
       switch (action) {
         case "rename":
-          await rename(message, nameSyntax, channelCategories);
+          await rename(nameSyntax, channelCategories);
           break;
         case "changeSyntax":
           await changeSyntax(args);
