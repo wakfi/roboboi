@@ -1,0 +1,157 @@
+{
+  "674025801959866378": {
+    "id": "121",
+    "number": "121",
+    "name": "Computer Science I"
+  },
+  "674025830665551900": {
+    "id": "122",
+    "number": "122",
+    "name": "Computer Science II"
+  },
+  "674025777070735370": {
+    "id": "223",
+    "number": "223",
+    "name": "Algorithm&Abstract Data Struct"
+  },
+  "674025884658696202": {
+    "id": "224",
+    "number": "224",
+    "name": "Software Development"
+  },
+  "674025915524710406": {
+    "id": "260",
+    "number": "260",
+    "name": "Computer Organization"
+  },
+  "674328017769725975": {
+    "id": "321",
+    "number": "321",
+    "name": "Database Management Systems"
+  },
+  "674328745472950284": {
+    "id": "326",
+    "number": "326",
+    "name": "Organization of Program Langs"
+  },
+  "674328055476387840": {
+    "id": "346",
+    "number": "346",
+    "name": "Operating Systems"
+  },
+  "694996230778126388": {
+    "id": "348",
+    "number": "348",
+    "name": "Computer Security"
+  },
+  "694996645578014730": {
+    "id": "351",
+    "number": "351",
+    "name": "Theory of Computation"
+  },
+  "694997159594164307": {
+    "id": "senior-design-lab",
+    "number": "491L-492L",
+    "name": "Senior Design Project Lab"
+  },
+  "694997352938733618": {
+    "id": "499",
+    "number": "499",
+    "name": "Computers and Society"
+  },
+  "694997885540106480": {
+    "id": "222",
+    "number": "222",
+    "name": "Introduction to Data Science"
+  },
+  "694998031858139228": {
+    "id": "322",
+    "number": "322",
+    "name": "Data Science Algorithms"
+  },
+  "694998171771731982": {
+    "id": "323",
+    "number": "323",
+    "name": "Machine Lrng & Intllgnt Systms"
+  },
+  "695003790478147674": {
+    "id": "332",
+    "number": "332",
+    "name": "Web Development"
+  },
+  "1028800328986001458": {
+    "id": "333",
+    "number": "333",
+    "name": "Mobile App Development"
+  },
+  "695000275349405838": {
+    "id": "436",
+    "number": "436",
+    "name": "Biomedical Informatics&Comput"
+  },
+  "674328093825040400": {
+    "id": "450",
+    "number": "450",
+    "name": "Design&Analysis-Comp Algorithm"
+  },
+  "775570613951660032": {
+    "id": "212",
+    "number": "212",
+    "name": "Computational Modeling"
+  },
+  "1065729765761363968": {
+    "id": "325",
+    "number": "325",
+    "name": "Data Science Project Lab"
+  },
+  "935765514389708881": {
+    "id": "331",
+    "number": "331",
+    "name": "UI/UX Design"
+  },
+  "698236935419723828": {
+    "id": "334",
+    "number": "334",
+    "name": "Linux and DevOps"
+  },
+  "695002947263791214": {
+    "id": "341",
+    "number": "341",
+    "name": "Internet of Things"
+  },
+  "694999522924953690": {
+    "id": "353",
+    "number": "353",
+    "name": "Applied Cryptography"
+  },
+  "674328760157470739": {
+    "id": "425",
+    "number": "425",
+    "name": "Computer Graphics"
+  },
+  "694999333908512878": {
+    "id": "431",
+    "number": "431",
+    "name": "Computer Hrdwr Dsg & Achtr"
+  },
+  "694998658675900487": {
+    "id": "435",
+    "number": "435",
+    "name": "Parallel & Cloud Computing"
+  },
+  "694998860661260340": {
+    "id": "447",
+    "number": "447",
+    "name": "Computer Networks"
+  },
+  "694997527929552936": {
+    "id": "455",
+    "number": "455",
+    "name": "Chaos & Dynamical Systems"
+  },
+  "674328877602045994": {
+    "id": "475",
+    "number": "475",
+    "name": "Speech&NaturalLangProcessing"
+  }
+}
