@@ -460,7 +460,7 @@ module.exports = {
           await changeSyntax(args);
           break;
         case "reset":
-          await reset(channelCategories);
+          // await reset(channelCategories);
           break;
         case "rearrange":
           await rearrange(message, nameSyntax, channelCategories);
