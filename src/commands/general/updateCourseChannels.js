@@ -489,7 +489,9 @@ async function rearrange(
       }
     }
 
-    await message.reply(dryRunMessage);
+    await message.reply(dryRunMessage, {
+      split: true,
+    });
   }
 }
 
@@ -566,7 +568,9 @@ async function rename(
 
       dryRunMessage += "\n";
     }
-    await message.reply(dryRunMessage);
+    await message.reply(dryRunMessage, {
+      split: true,
+    });
   }
 }
 
@@ -689,7 +693,9 @@ module.exports = {
     } catch (e) {
       await waitingReaction.remove();
       await message.react("❌");
-      await message.reply(e.message);
+      await message.reply(e.message, {
+        split: true,
+      });
     }
   },
 };
