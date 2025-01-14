@@ -635,9 +635,9 @@ module.exports = {
         case "changeSyntax":
           await changeSyntax(args);
           break;
-        case "reset":
-          await reset(channelCategories);
-          break;
+        // case "reset":
+        //   await reset(channelCategories);
+        //   break;
         case "rearrange":
           await rearrange(message, nameSyntax, channelCategories, isDryRun, shouldSendMessages);
           break;
