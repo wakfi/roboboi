@@ -233,7 +233,17 @@ async function rearrange(
 ) {
   const attachment = await parseAttachment(message);
   const { coursesBeingOffered, allCourses, term } = attachment;
-  let dryRunMessage = "Changes:\n";
+  const categories = Object.keys(channelCategories);
+  const dryRunMessageMap = Object.fromEntries(
+    categories.map((category) => [
+      category,
+      {
+        moving: [],
+        keeping: [],
+        creating: [],
+      },
+    ])
+  );
 
   // Add courses to their respective categories
   for (const courseNumber in coursesBeingOffered) {
@@ -282,7 +292,9 @@ async function rearrange(
         if (!isDryRun) {
           await channel.setParent(notOfferedChannel.id);
         } else {
-          dryRunMessage += `- Moving <#${channel.id}> to <#${notOfferedChannel.id}>\n`;
+          dryRunMessageMap[category].moving.push(
+            `- Moving <#${channel.id}> to <#${notOfferedChannel.id}>\n`
+          );
         }
         continue;
       }
@@ -292,10 +304,14 @@ async function rearrange(
         if (!isDryRun) {
           await channel.setParent(notOfferedChannel.id);
         } else {
-          dryRunMessage += `- Moving <#${channel.id}> to <#${notOfferedChannel.id}>\n`;
+          dryRunMessageMap[category].moving.push(
+            `- Moving <#${channel.id}> to <#${notOfferedChannel.id}>\n`
+          );
         }
-      } else {
-        dryRunMessage += `- Keeping <#${channel.id}> in <#${offeredChannel.id}>\n`;
+      } else if (isDryRun) {
+        dryRunMessageMap[category].keeping.push(
+          `- Keeping <#${channel.id}> in <#${offeredChannel.id}>\n`
+        );
       }
 
       // Update the set of existing channel names
@@ -314,10 +330,14 @@ async function rearrange(
           // If it is being offered, move it to the offered channel
           await channel.setParent(offeredChannel.id);
         } else {
-          dryRunMessage += `- Moving <#${channel.id}> to <#${offeredChannel.id}>\n`;
+          dryRunMessageMap[category].moving.push(
+            `- Moving <#${channel.id}> to <#${offeredChannel.id}>\n`
+          );
         }
-      } else {
-        dryRunMessage += `- Keeping <#${channel.id}> in <#${notOfferedChannel.id}>\n`;
+      } else if (isDryRun) {
+        dryRunMessageMap[category].keeping.push(
+          `- Keeping <#${channel.id}> in <#${notOfferedChannel.id}>\n`
+        );
       }
 
       // Update the set of existing channel names
@@ -342,11 +362,6 @@ async function rearrange(
         continue;
       }
 
-      if (isDryRun) {
-        dryRunMessage += `- Creating channel for ${courseNumber}\n`;
-        continue;
-      }
-
       // Create the channel
       const courseName = coursesBeingOffered[courseNumber];
       const channelName = getChannelNameFromSyntax(
@@ -356,6 +371,14 @@ async function rearrange(
         category,
         courseNumber
       );
+
+      if (isDryRun) {
+        dryRunMessageMap[category].creating.push(
+          `- Creating channel for CPSC${courseNumber} - ${courseName}\n`
+        );
+        continue;
+      }
+
       const channel = await message.guild.channels.create(channelName, {
         parent: offeredChannel.id,
       });
@@ -413,7 +436,27 @@ async function rearrange(
     await saveCourseMapping();
     await message.guild.setChannelPositions(channelPositions);
   } else {
-    console.log(dryRunMessage);
+    let dryRunMessage = "\n";
+
+    for (const category in dryRunMessageMap) {
+      let categoryMessage = "";
+
+      for (const channelType in dryRunMessageMap[category]) {
+        const messageArray = dryRunMessageMap[category][channelType];
+
+        if(messageArray.length === 0) continue;
+
+        categoryMessage += `***${channelType}***:\n`;
+        categoryMessage += dryRunMessageMap[category][channelType].join("");
+        categoryMessage += "\n";
+      }
+
+      if (categoryMessage.length !== 0) {
+        dryRunMessage += `# **${category}**:\n\n`;
+        dryRunMessage += categoryMessage;
+      }
+    }
+
     await message.reply(dryRunMessage);
   }
 }
@@ -427,8 +470,16 @@ async function rearrange(
  * @param {boolean} isDryRun Whether to actually rename the channels or not. If true, the channels will not be renamed and
  * all the changes will be sent in a message
  */
-async function rename(message, nameSyntax, channelCategories, isDryRun = false) {
-  let dryRunMessage = "Changes:\n";
+async function rename(
+  message,
+  nameSyntax,
+  channelCategories,
+  isDryRun = false
+) {
+  const dryRunMessageMap = {
+    skipping: [],
+    renaming: [],
+  };
 
   for (const category in channelCategories) {
     const { offeredChannel, notOfferedChannel } = channelCategories[category];
@@ -441,22 +492,48 @@ async function rename(message, nameSyntax, channelCategories, isDryRun = false) 
       const channelId = channel.id;
 
       if (!(channelId in courseMapping)) {
-        dryRunMessage += `- Skipping <#${channelId}> because it doesn't have a mapping\n`;
+        dryRunMessageMap.skipping.push(
+          `- Skipping <#${channelId}> because it doesn't have a mapping\n`
+        );
         continue;
-      };
+      }
 
       const { id, number, name } = courseMapping[channelId];
-      const channelName = getChannelNameFromSyntax(id, name, nameSyntax, null, number);
+      const channelName = getChannelNameFromSyntax(
+        id,
+        name,
+        nameSyntax,
+        null,
+        number
+      );
 
-      if(isDryRun) {
-        dryRunMessage += `- Renaming <#${channelId}> to \`${channelName}\`\n`;
+      if (isDryRun) {
+        dryRunMessageMap.renaming.push(
+          `- Renaming <#${channelId}> to \`${channelName}\`\n`
+        );
       } else {
         await channel.setName(channelName);
       }
     }
   }
 
-  if(isDryRun) {
+  if (isDryRun) {
+    // Group the messages by type and send it as a reply
+
+    let dryRunMessage = "\n\n";
+
+    for (const key in dryRunMessageMap) {
+      dryRunMessage += `**${key}**:\n`;
+
+      if (dryRunMessageMap[key].length === 0) {
+        // If there are no messages, say that there are none
+        dryRunMessage += "None\n";
+      } else {
+        dryRunMessage += dryRunMessageMap[key].join("");
+      }
+
+      dryRunMessage += "\n";
+    }
     await message.reply(dryRunMessage);
   }
 }
@@ -517,7 +594,7 @@ module.exports = {
     "- The syntax of the channel name can be changed using the `changeSyntax` subcommand.\n" +
     "- The new syntax can be applied using the `rename` subcommand.\n" +
     "- The syntax can be any string with `{{number}}` and `{{name}}` as placeholders for the course number and name, respectively. For example, `cpsc-{{number}}-{{name}}` would be transformed to `cpsc-121-introduction-to-computer-science`.\n" +
-    "- To rearrange the channels based on what course is being offered currently, use the `rearrange` subcommand.\n" + 
+    "- To rearrange the channels based on what course is being offered currently, use the `rearrange` subcommand.\n" +
     "- The `--dry-run` flag can be used to see what changes will be made without actually making them. Only works with the `rearrange` and `rename` subcommands.",
   category: "development",
   permLevel: "Moderator",
