@@ -34,5 +34,5 @@
     "492L",
     "499"
   ],
-  "nameSyntax": "{{number}}-${{name}}"
+  "nameSyntax": "{{number}}-{{name}}"
 }
