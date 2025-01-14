@@ -340,7 +340,7 @@ async function rearrange(
       if (!courseId) {
         // Keep the channel in the not offered channel since we don't have any information about it
         notOfferedChannels.add(channel);
-        continue; 
+        continue;
       }
 
       if (offeredCourseIds.has(courseId)) {
@@ -421,19 +421,17 @@ async function rearrange(
 
     // Sort the channels lexicographically. This also works for non-special courses since
     // all the course numbers are 3 digits.
-    const offeredChannelChildrenSorted = [
-      ...offeredChannels,
-    ].sort((a, b) => {
+    const offeredChannelChildrenSorted = [...offeredChannels].sort((a, b) => {
       if (a.name === b.name) return 0;
       return a.name > b.name ? 1 : -1;
     });
 
-    const notOfferedChannelChildrenSorted = [
-      ...notOfferedChannels,
-    ].sort((a, b) => {
-      if (a.name === b.name) return 0;
-      return a.name > b.name ? 1 : -1;
-    });
+    const notOfferedChannelChildrenSorted = [...notOfferedChannels].sort(
+      (a, b) => {
+        if (a.name === b.name) return 0;
+        return a.name > b.name ? 1 : -1;
+      }
+    );
 
     for (let i = 0; i < offeredChannelChildrenSorted.length; i++) {
       const channel = offeredChannelChildrenSorted[i];
@@ -461,6 +459,14 @@ async function rearrange(
   if (!isDryRun) {
     await saveCourseMapping();
     await message.guild.setChannelPositions(channelPositions);
+    await message.reply("Updated course map", {
+      files: [
+        {
+          attachment: courseMappingPath,
+          name: "courseMapping.json",
+        },
+      ],
+    });
   } else {
     let dryRunMessage = "\n";
 
