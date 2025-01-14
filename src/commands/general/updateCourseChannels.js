@@ -1,3 +1,4 @@
+const fetch = require('node-fetch');
 const fs = require("fs/promises");
 const configPath = `${process.cwd()}/util/components/course.json`;
 const config = require(configPath);
@@ -174,8 +175,8 @@ function getChannelNameFromSyntax(
   const normalizedCourseName = normalizeCourseName(courseName);
 
   return syntax
-    .replaceAll("{{number}}", courseNumber)
-    .replaceAll("{{name}}", normalizedCourseName);
+    .replace(/{{number}}/g, courseNumber)
+    .replace(/{{name}}/g, normalizedCourseName);
 }
 
 /**
@@ -444,7 +445,7 @@ async function rearrange(
       for (const channelType in dryRunMessageMap[category]) {
         const messageArray = dryRunMessageMap[category][channelType];
 
-        if(messageArray.length === 0) continue;
+        if (messageArray.length === 0) continue;
 
         categoryMessage += `***${channelType}***:\n`;
         categoryMessage += dryRunMessageMap[category][channelType].join("");
