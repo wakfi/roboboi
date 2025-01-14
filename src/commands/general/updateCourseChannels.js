@@ -225,12 +225,14 @@ async function parseAttachment(message) {
  * @param {ChannelCategories} channelCategories The channels to rearrange
  * @param {boolean} isDryRun Whether to actually rearrange the channels or not. If true, the channels will not be rearranged and
  * all the changes will be sent in a message
+ * @param {boolean} shouldSendMessages Whether to send messages or not
  */
 async function rearrange(
   message,
   nameSyntax,
   channelCategories,
-  isDryRun = false
+  isDryRun = false,
+  shouldSendMessages = true
 ) {
   const attachment = await parseAttachment(message);
   const { coursesBeingOffered, allCourses, term } = attachment;
@@ -413,7 +415,7 @@ async function rearrange(
     for (let i = 0; i < offeredChannelChildrenSorted.length; i++) {
       const channel = offeredChannelChildrenSorted[i];
 
-      if (!isDryRun) {
+      if (!isDryRun && shouldSendMessages) {
         await channel.send(`***Start of ${term}***`);
       }
 
@@ -588,7 +590,7 @@ async function changeSyntax(args) {
 
 module.exports = {
   name: "updateCourseChannels",
-  usage: ["<rearrange|rename|changeSyntax> [nameSyntax] [--dry-run]"],
+  usage: ["<rearrange|rename|changeSyntax> [nameSyntax] [--dry-run] [--no-messages]"],
   aliases: ["ucc"],
   description:
     "Updates the course channels' names and position.\n" +
@@ -596,12 +598,15 @@ module.exports = {
     "- The new syntax can be applied using the `rename` subcommand.\n" +
     "- The syntax can be any string with `{{number}}` and `{{name}}` as placeholders for the course number and name, respectively. For example, `cpsc-{{number}}-{{name}}` would be transformed to `cpsc-121-introduction-to-computer-science`.\n" +
     "- To rearrange the channels based on what course is being offered currently, use the `rearrange` subcommand.\n" +
-    "- The `--dry-run` flag can be used to see what changes will be made without actually making them. Only works with the `rearrange` and `rename` subcommands.",
+    "- The `--dry-run` flag can be used to see what changes will be made without actually making them. Only works with the `rearrange` and `rename` subcommands.\n" +
+    "- The `--no-messages` flag can be used to prevent the bot from sending messages in the channels when rearranging them.",
   category: "development",
   permLevel: "Moderator",
   noArgs: false,
   async execute(message, args) {
     const isDryRun = args.includes("--dry-run");
+    const shouldSendMessages = !args.includes("--no-messages");
+
     // Let the user know that the command is running
     const action = args[0];
     const nameSyntax = config.nameSyntax;
@@ -634,7 +639,7 @@ module.exports = {
           await reset(channelCategories);
           break;
         case "rearrange":
-          await rearrange(message, nameSyntax, channelCategories, isDryRun);
+          await rearrange(message, nameSyntax, channelCategories, isDryRun, shouldSendMessages);
           break;
         default:
           throw new Error(
