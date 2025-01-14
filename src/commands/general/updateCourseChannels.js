@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+const fetch = require("node-fetch");
 const fs = require("fs/promises");
 const configPath = `${process.cwd()}/util/components/course.json`;
 const config = require(configPath);
@@ -279,6 +279,9 @@ async function rearrange(
   for (const category in channelCategories) {
     // Stores whether a channel already exists for a course number
     const existingChannelIds = new Set();
+    const offeredChannels = new Set();
+    const notOfferedChannels = new Set();
+
     const { offeredChannel, notOfferedChannel, courses } =
       channelCategories[category];
 
@@ -292,6 +295,8 @@ async function rearrange(
       if (!courseId) {
         // If we don't have any information about the course, assume it's not being
         // offered and move it to the not offered channel
+        notOfferedChannels.add(channel);
+
         if (!isDryRun) {
           await channel.setParent(notOfferedChannel.id);
         } else {
@@ -303,6 +308,8 @@ async function rearrange(
       }
 
       if (!offeredCourseIds.has(courseId)) {
+        notOfferedChannels.add(channel);
+
         // If it's not being offered, move it to the not offered channel
         if (!isDryRun) {
           await channel.setParent(notOfferedChannel.id);
@@ -311,10 +318,14 @@ async function rearrange(
             `- Moving <#${channel.id}> to <#${notOfferedChannel.id}>\n`
           );
         }
-      } else if (isDryRun) {
-        dryRunMessageMap[category].keeping.push(
-          `- Keeping <#${channel.id}> in <#${offeredChannel.id}>\n`
-        );
+      } else {
+        offeredChannels.add(channel);
+
+        if (isDryRun) {
+          dryRunMessageMap[category].keeping.push(
+            `- Keeping <#${channel.id}> in <#${offeredChannel.id}>\n`
+          );
+        }
       }
 
       // Update the set of existing channel names
@@ -326,9 +337,15 @@ async function rearrange(
       // Get the course ID from the channel name
       const courseId = getCourseIdFromChannel(channel);
 
-      if (!courseId) continue;
+      if (!courseId) {
+        // Keep the channel in the not offered channel since we don't have any information about it
+        notOfferedChannels.add(channel);
+        continue; 
+      }
 
       if (offeredCourseIds.has(courseId)) {
+        offeredChannels.add(channel);
+
         if (!isDryRun) {
           // If it is being offered, move it to the offered channel
           await channel.setParent(offeredChannel.id);
@@ -337,10 +354,14 @@ async function rearrange(
             `- Moving <#${channel.id}> to <#${offeredChannel.id}>\n`
           );
         }
-      } else if (isDryRun) {
-        dryRunMessageMap[category].keeping.push(
-          `- Keeping <#${channel.id}> in <#${notOfferedChannel.id}>\n`
-        );
+      } else {
+        notOfferedChannels.add(channel);
+
+        if (isDryRun) {
+          dryRunMessageMap[category].keeping.push(
+            `- Keeping <#${channel.id}> in <#${notOfferedChannel.id}>\n`
+          );
+        }
       }
 
       // Update the set of existing channel names
@@ -386,6 +407,8 @@ async function rearrange(
         parent: offeredChannel.id,
       });
 
+      offeredChannels.add(channel);
+
       // Add the course to the course mapping
       courseMapping[channel.id] = {
         id: courseId,
@@ -399,14 +422,14 @@ async function rearrange(
     // Sort the channels lexicographically. This also works for non-special courses since
     // all the course numbers are 3 digits.
     const offeredChannelChildrenSorted = [
-      ...offeredChannel.children.values(),
+      ...offeredChannels,
     ].sort((a, b) => {
       if (a.name === b.name) return 0;
       return a.name > b.name ? 1 : -1;
     });
 
     const notOfferedChannelChildrenSorted = [
-      ...notOfferedChannel.children.values(),
+      ...notOfferedChannels,
     ].sort((a, b) => {
       if (a.name === b.name) return 0;
       return a.name > b.name ? 1 : -1;
@@ -590,7 +613,9 @@ async function changeSyntax(args) {
 
 module.exports = {
   name: "updateCourseChannels",
-  usage: ["<rearrange|rename|changeSyntax> [nameSyntax] [--dry-run] [--no-messages]"],
+  usage: [
+    "<rearrange|rename|changeSyntax> [nameSyntax] [--dry-run] [--no-messages]",
+  ],
   aliases: ["ucc"],
   description:
     "Updates the course channels' names and position.\n" +
@@ -639,7 +664,13 @@ module.exports = {
         //   await reset(channelCategories);
         //   break;
         case "rearrange":
-          await rearrange(message, nameSyntax, channelCategories, isDryRun, shouldSendMessages);
+          await rearrange(
+            message,
+            nameSyntax,
+            channelCategories,
+            isDryRun,
+            shouldSendMessages
+          );
           break;
         default:
           throw new Error(
